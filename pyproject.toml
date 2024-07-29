@@ -10,6 +10,11 @@ python = ">=3.10,<=3.13"
 crewai = { extras = ["tools"], version = "^0.35.8" }
 fastapi = "^0.111.1"
 uvicorn = "^0.30.3"
+sqlalchemy = "^2.0.31"
+supabase = "^2.6.0"
+python-decouple = "^3.8"
+pydantic-settings = "^2.3.4"
+supabase-py-async = "^2.5.6"
 
 [build-system]
 requires = ["poetry-core"]
