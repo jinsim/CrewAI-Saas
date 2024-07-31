@@ -32,8 +32,8 @@ class UpdateBase(BaseModel):
 class DeleteBase(BaseModel):
     # inherent to add more properties for deleting
     id: int
-    is_deleted = True
-    updated_at = str(datetime.now())
+    is_deleted: Optional[bool] = True
+    updated_at: Optional[str] = str(datetime.now())
 
 # Properties to receive on item upsert
 # in
