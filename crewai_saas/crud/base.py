@@ -3,11 +3,13 @@ from typing import Generic, TypeVar
 from supabase_py_async import AsyncClient
 
 from crewai_saas.schema.auth import UserIn
-from crewai_saas.schema.base import CreateBase, ResponseBase, UpdateBase
+from crewai_saas.schema.base import CreateBase, ResponseBase, UpdateBase, UpsertBase, DeleteBase
 
 ModelType = TypeVar("ModelType", bound=ResponseBase)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=CreateBase)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=UpdateBase)
+UpsertSchemaType = TypeVar("UpsertSchemaType", bound=UpsertBase)
+DeleteSchemaType = TypeVar("DeleteSchemaType", bound=DeleteBase)
 
 
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
@@ -22,9 +24,23 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         _, got = data
         return self.model(**got[0]) if got else None
 
+    async def get_active(self, db: AsyncClient, *, id: str) -> ModelType | None:
+        """get active by table_name by id"""
+        data, count = (
+            await db.table(self.model.table_name).select("*").eq("id", id).eq("is_deleted", False).execute()
+        )
+        _, got = data
+        return self.model(**got[0]) if got else None
+
     async def get_all(self, db: AsyncClient) -> list[ModelType]:
         """get all by table_name"""
         data, count = await db.table(self.model.table_name).select("*").execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
+    async def get_all_active(self, db: AsyncClient) -> list[ModelType]:
+        """get all active by table_name"""
+        data, count = await db.table(self.model.table_name).select("*").eq("is_deleted", False).execute()
         _, got = data
         return [self.model(**item) for item in got]
 
@@ -60,6 +76,16 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         _, updated = data
         return self.model(**updated[0])
 
+    async def upsert(self, db: AsyncClient, *, obj_in: UpsertSchemaType) -> ModelType:
+        """upsert by UpsertSchemaType"""
+        data, count = (
+            await db.table(self.model.table_name)
+            .upsert(obj_in.model_dump())
+            .execute()
+        )
+        _, updated = data
+        return self.model(**updated[0])
+
     async def delete(self, db: AsyncClient, *, id: str) -> ModelType:
         """remove by UpdateSchemaType"""
         data, count = (
@@ -67,3 +93,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         )
         _, deleted = data
         return self.model(**deleted[0])
+
+    async def soft_delete(self, db: AsyncClient, *, obj_in: DeleteSchemaType) -> ModelType:
+        """soft delete by DeleteSchemaType"""
+        data, count = (
+            await db.table(self.model.table_name)
+            .update(obj_in.model_dump())
+            .eq("id", obj_in.id)
+            .execute()
+        )
+        _, updated = data
+        return self.model(**updated[0])

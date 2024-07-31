@@ -11,8 +11,14 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
     async def get(self, db: AsyncClient, *, id: str) -> Crew | None:
         return await super().get(db, id=id)
 
+    async def get_active(self, db: AsyncClient, *, id: str) -> Crew | None:
+        return await super().get_active(db, id=id)
+
     async def get_all(self, db: AsyncClient) -> list[Crew]:
         return await super().get_all(db)
+
+    async def get_all_active(self, db: AsyncClient) -> list[Crew]:
+        return await super().get_all_active(db)
 
     async def get_multi_by_owner(self, db: AsyncClient, *, user: UserIn) -> list[Crew]:
         return await super().get_multi_by_owner(db, user=user)

@@ -1,5 +1,6 @@
 from typing import ClassVar
 from typing import Optional
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -21,10 +22,23 @@ class CreateBase(BaseModel):
 
 # Properties to receive on item update
 # in
-
-
 class UpdateBase(BaseModel):
     # inherent to add more properties for updating
+    id: int
+
+
+# Properties to receive on item delete
+# in
+class DeleteBase(BaseModel):
+    # inherent to add more properties for deleting
+    id: int
+    is_deleted = True
+    updated_at = str(datetime.now())
+
+# Properties to receive on item upsert
+# in
+class UpsertBase(BaseModel):
+    # inherent to add more properties for upserting
     id: int
 
 
