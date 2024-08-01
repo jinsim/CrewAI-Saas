@@ -16,7 +16,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def __init__(self, model: type[ModelType]):
         self.model = model
 
-    async def get(self, db: AsyncClient, *, id: str) -> ModelType | None:
+    async def get(self, db: AsyncClient, *, id: int) -> ModelType | None:
         """get by table_name by id"""
         data, count = (
             await db.table(self.model.table_name).select("*").eq("id", id).execute()
@@ -24,7 +24,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         _, got = data
         return self.model(**got[0]) if got else None
 
-    async def get_active(self, db: AsyncClient, *, id: str) -> ModelType | None:
+    async def get_active(self, db: AsyncClient, *, id: int) -> ModelType | None:
         """get active by table_name by id"""
         data, count = (
             await db.table(self.model.table_name).select("*").eq("id", id).eq("is_deleted", False).execute()
@@ -86,7 +86,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         _, updated = data
         return self.model(**updated[0])
 
-    async def delete(self, db: AsyncClient, *, id: str) -> ModelType:
+    async def delete(self, db: AsyncClient, *, id: int) -> ModelType:
         """remove by UpdateSchemaType"""
         data, count = (
             await db.table(self.model.table_name).delete().eq("id", id).execute()
