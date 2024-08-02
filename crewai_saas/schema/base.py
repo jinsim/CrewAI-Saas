@@ -35,12 +35,6 @@ class DeleteBase(BaseModel):
     is_deleted: Optional[bool] = True
     updated_at: Optional[str] = str(datetime.now())
 
-# Properties to receive on item upsert
-# in
-class UpsertBase(BaseModel):
-    # inherent to add more properties for upserting
-    id: int
-
 
 # response
 
@@ -50,11 +44,21 @@ class InDBBase(BaseModel):
     id: int
     created_at: str
 
+class InDBBaseWithoutCreatedAt(BaseModel):
+    id: int
+
 
 # Properties to return to client
 # curd model
 # out
 class ResponseBase(InDBBase):
+    # inherent to add more properties for responding
+    table_name: ClassVar[str] = "ResponseBase".lower()
+    Config: ClassVar[ConfigDict] = ConfigDict(
+        extra="ignore", arbitrary_types_allowed=True
+    )
+
+class ResponseBaseWithoutCreatedAt(InDBBaseWithoutCreatedAt):
     # inherent to add more properties for responding
     table_name: ClassVar[str] = "ResponseBase".lower()
     Config: ClassVar[ConfigDict] = ConfigDict(

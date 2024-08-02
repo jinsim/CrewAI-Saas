@@ -15,8 +15,8 @@ class CRUDTestItem(CRUDBase[TestItem, TestItemCreate, TestItemUpdate]):
     async def get_all(self, db: AsyncClient) -> list[TestItem]:
         return await super().get_all(db)
 
-    async def get_multi_by_owner(self, db: AsyncClient, *, user: UserIn) -> list[TestItem]:
-        return await super().get_multi_by_owner(db, user=user)
+    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[TestItem]:
+        return await super().get_multi_by_owner(db, user_id=user_id)
 
     async def update(self, db: AsyncClient, *, obj_in: TestItemUpdate) -> TestItem:
         return await super().update(db, obj_in=obj_in)

@@ -20,8 +20,8 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
     async def get_all_active(self, db: AsyncClient) -> list[Crew]:
         return await super().get_all_active(db)
 
-    async def get_multi_by_owner(self, db: AsyncClient, *, user: UserIn) -> list[Crew]:
-        return await super().get_multi_by_owner(db, user=user)
+    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Crew]:
+        return await super().get_multi_by_owner(db, user_id=user_id)
 
     async def update(self, db: AsyncClient, *, obj_in: CrewUpdate) -> Crew:
         return await super().update(db, obj_in=obj_in)
@@ -50,8 +50,8 @@ class CRUDTask(CRUDBase[Task, TaskCreate, TaskUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
-    async def get_multi_by_owner(self, db: AsyncClient, *, user: UserIn) -> list[Task]:
-        return await super().get_multi_by_owner(db, user=user)
+    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Task]:
+        return await super().get_multi_by_owner(db, user_id=user_id)
 
     async def update(self, db: AsyncClient, *, obj_in: TaskUpdate) -> Task:
         return await super().update(db, obj_in=obj_in)
@@ -79,8 +79,8 @@ class CRUDAgent(CRUDBase[Agent, AgentCreate, AgentUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
-    async def get_multi_by_owner(self, db: AsyncClient, *, user: UserIn) -> list[Agent]:
-        return await super().get_multi_by_owner(db, user=user)
+    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Agent]:
+        return await super().get_multi_by_owner(db, user_id=user_id)
 
     async def update(self, db: AsyncClient, *, obj_in: AgentUpdate) -> Agent:
         return await super().update(db, obj_in=obj_in)
@@ -103,8 +103,8 @@ class CRUDTaskContext(CRUDBase[TaskContext, TaskContextCreate, TaskContextUpdate
         _, got = data
         return [item["child_task_id"] for item in got]
 
-    async def get_multi_by_owner(self, db: AsyncClient, *, user: UserIn) -> list[TaskContext]:
-        return await super().get_multi_by_owner(db, user=user)
+    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[TaskContext]:
+        return await super().get_multi_by_owner(db, user_id=user_id)
 
     async def update(self, db: AsyncClient, *, obj_in: TaskContextUpdate) -> TaskContext:
         return await super().update(db, obj_in=obj_in)

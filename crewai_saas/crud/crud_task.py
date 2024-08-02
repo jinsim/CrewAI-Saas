@@ -25,8 +25,8 @@ class CRUDTask(CRUDBase[Task, TaskCreate, TaskUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
-    async def get_multi_by_owner(self, db: AsyncClient, *, user: UserIn) -> list[Task]:
-        return await super().get_multi_by_owner(db, user=user)
+    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Task]:
+        return await super().get_multi_by_owner(db, user_id=user_id)
 
     async def update(self, db: AsyncClient, *, obj_in: TaskUpdate) -> Task:
         return await super().update(db, obj_in=obj_in)

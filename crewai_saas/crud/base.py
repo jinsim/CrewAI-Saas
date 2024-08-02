@@ -1,12 +1,11 @@
 from typing import Generic, TypeVar, Any, List, Optional
 from supabase_py_async import AsyncClient
 from crewai_saas.schema.auth import UserIn
-from crewai_saas.schema.base import CreateBase, ResponseBase, UpdateBase, UpsertBase, DeleteBase
+from crewai_saas.schema.base import CreateBase, ResponseBase, UpdateBase, DeleteBase
 
 ModelType = TypeVar("ModelType", bound=ResponseBase)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=CreateBase)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=UpdateBase)
-UpsertSchemaType = TypeVar("UpsertSchemaType", bound=UpsertBase)
 DeleteSchemaType = TypeVar("DeleteSchemaType", bound=DeleteBase)
 
 
@@ -40,8 +39,12 @@ class ReadBase(Generic[ModelType]):
         query = db.table(self.model.table_name).select("*").eq("is_deleted", False)
         return await self._execute_multi_query(query)
 
-    async def get_multi_by_owner(self, db: AsyncClient, *, user: UserIn) -> List[ModelType]:
-        query = db.table(self.model.table_name).select("*").eq("user_id", user.id)
+    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> List[ModelType]:
+        query = db.table(self.model.table_name).select("*").eq("user_id", user_id)
+        return await self._execute_multi_query(query)
+
+    async def get_all_active_by_owner(self, db: AsyncClient, *, user_id: int) -> List[ModelType]:
+        query = db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("is_deleted", False)
         return await self._execute_multi_query(query)
 
 
@@ -56,17 +59,13 @@ class CRUDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType, UpdateS
         _, updated = data
         return self.model(**updated[0])
 
-    async def upsert(self, db: AsyncClient, *, obj_in: UpsertSchemaType) -> ModelType:
-        data, _ = await db.table(self.model.table_name).upsert(obj_in.model_dump()).execute()
-        _, upserted = data
-        return self.model(**upserted[0])
-
     async def delete(self, db: AsyncClient, *, id: int) -> ModelType:
         data, _ = await db.table(self.model.table_name).delete().eq("id", id).execute()
         _, deleted = data
         return self.model(**deleted[0])
 
-    async def soft_delete(self, db: AsyncClient, *, obj_in: DeleteSchemaType) -> ModelType:
+    async def soft_delete(self, db: AsyncClient, *, id: int) -> ModelType:
+        obj_in: DeleteSchemaType = DeleteBase(id=id)
         data, _ = await db.table(self.model.table_name).update(obj_in.model_dump()).eq("id", obj_in.id).execute()
         _, updated = data
         return self.model(**updated[0])
