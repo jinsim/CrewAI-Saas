@@ -15,13 +15,13 @@ router = APIRouter()
 async def read_tools(session: SessionDep) -> list[Tool]:
     return await tool.get_all_active(session)
 
-
 @router.post("/")
 async def create_crew(crew_in: CrewCreate, session: SessionDep) -> Crew:
     return await crew.create(session, obj_in=crew_in)
 
 @router.put("/{crew_id}")
-async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")], crew_in: CrewUpdate, session: SessionDep) -> Crew:
+async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
+                      crew_in: CrewUpdate, session: SessionDep) -> Crew:
     return await crew.update(session, obj_in=crew_in)
 
 @router.get("/")
@@ -30,7 +30,6 @@ async def read_crews(session: SessionDep) -> list[Crew]:
 
 @router.get("/{crew_id}")
 async def read_crew_by_id(crew_id: Annotated[int, Path(title="The ID of the Crew to get")], session: SessionDep) -> Crew | None:
-    print(type(crew_id))
     return await crew.get_active(session, id=crew_id)
 
 @router.delete("/{crew_id}")
