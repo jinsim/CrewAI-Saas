@@ -49,6 +49,9 @@ class LlmProvider(ResponseBase):
 
     table_name: ClassVar[str] = "llm_provider"
 
+class LlmProviderWithLlms(LlmProvider):
+    llms: list[Llm] = []
+
 class LlmProviderInDB(InDBBase):
     name: Optional[str] = ""
 
