@@ -33,7 +33,6 @@ class DeleteBase(BaseModel):
     # inherent to add more properties for deleting
     id: int
     is_deleted: Optional[bool] = True
-    updated_at: Optional[str] = str(datetime.now())
 
 
 # response

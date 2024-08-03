@@ -124,8 +124,8 @@ class TaskCreate(CreateBase):
 
 class TaskUpdate(UpdateBase):
     name: str
-    description: Optional[str] = ""
-    expected_output: Optional[str] = ""
+    description: str
+    expected_output: str
 
 class Task(ResponseBase):
     crew_id: int
@@ -206,6 +206,7 @@ class AgentUpdate(UpdateBase):
     backstory: Optional[str] = ""
     llm_id: int
     tool_ids: Optional[list] = None
+    is_deleted: bool
 
 class Agent(ResponseBase):
     task_id: int
@@ -215,6 +216,7 @@ class Agent(ResponseBase):
     backstory: Optional[str]
     llm_id: int
     tool_ids: Optional[list]
+    is_deleted: bool
 
     table_name: ClassVar[str] = "agent"
 
@@ -226,6 +228,7 @@ class AgentInDB(InDBBase):
     backstory: Optional[str]
     llm_id: int
     tools: Optional[list]
+    is_deleted: bool
 
 class AgentWithTool(Agent):
     tools: Optional[list] = None
@@ -267,3 +270,4 @@ class ToolInDB(InDBBase):
     key: str
     description: Optional[str]
     is_deleted: bool
+

@@ -26,11 +26,10 @@ class UserCreate(CreateBase):
     country_id: Optional[int] = None
 
 class UserUpdate(UpdateBase):
-    name: Optional[str] = ""
-    email: Optional[str] = ""
+    name: str
+    email: str
     image: Optional[str] = ""
     coin: Optional[float] = 0
-    is_deleted: Optional[bool] = False
     country_id: Optional[int] = None
 
 class User(ResponseBase):
