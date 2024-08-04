@@ -119,6 +119,7 @@ class CrewInDB(InDBBase):
 #     constraint task_crew_id_fkey foreign key (crew_id) references crew (id)
 #   ) tablespace pg_default;
 class TaskCreate(CreateBase):
+    agent_id: int
     crew_id: int
     name: str
     description: Optional[str] = ""
@@ -126,11 +127,13 @@ class TaskCreate(CreateBase):
     is_deleted: Optional[bool] = False
 
 class TaskUpdate(UpdateBase):
+    agent_id: int
     name: str
     description: str
     expected_output: str
 
 class Task(ResponseBase):
+    agent_id: int
     crew_id: int
     name: str
     description: Optional[str]
@@ -146,6 +149,7 @@ class TaskWithAgent(TaskWithContext):
     agents: Optional[list] = None
 
 class TaskInDB(InDBBase):
+    agent_id: int
     crew_id: int
     name: str
     description: Optional[str]
@@ -197,7 +201,7 @@ class TaskContextInDB(InDBBase):
 #     constraint agent_task_id_fkey foreign key (task_id) references task (id)
 
 class AgentCreate(CreateBase):
-    task_id: int
+    crew_id: int
     name: Optional[str] = ""
     role: Optional[str] = ""
     goal: Optional[str] = ""
@@ -215,12 +219,12 @@ class AgentUpdate(UpdateBase):
     is_deleted: bool
 
 class Agent(ResponseBase):
-    task_id: int
+    crew_id: int
     name: Optional[str]
     role: Optional[str]
     goal: Optional[str]
     backstory: Optional[str]
-    llm_id: int
+    llm_id: Optional[int]
     tool_ids: Optional[list]
     is_deleted: bool
 
@@ -231,12 +235,12 @@ class AgentWithTool(Agent):
 
 
 class AgentInDB(InDBBase):
-    task_id: int
+    crew_id: int
     name: Optional[str]
     role: Optional[str]
     goal: Optional[str]
     backstory: Optional[str]
-    llm_id: int
+    llm_id: Optional[int]
     tools: Optional[list]
     is_deleted: bool
 

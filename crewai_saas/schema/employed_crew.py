@@ -142,7 +142,6 @@ class MessageInDB(InDBBase):
 
 class CycleCreate(CreateBase):
     status: str
-    result: Optional[str] = ""
     cost: Optional[float] = 0
     price: Optional[float] = 0
     total_token: Optional[int] = 0
@@ -153,10 +152,16 @@ class CycleUpdate(UpdateBase):
 
 class Cycle(ResponseBase):
     status: str
-    result: str
     cost: float
     price: float
     total_token: int
     chat_id: int
 
     table_name: ClassVar[str] = "cycle"
+
+class CycleInDB(InDBBase):
+    status: str
+    cost: float
+    price: float
+    total_token: int
+    chat_id: int
