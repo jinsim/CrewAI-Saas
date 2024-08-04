@@ -15,7 +15,5 @@ class CRUDChat(CRUDBase[Chat, ChatCreate, ChatUpdate]):
         return [self.model(**item) for item in got]
 
 
-
-
-empolyed_crew = CRUDEmployedCrew(EmployedCrew)
+employed_crew = CRUDEmployedCrew(EmployedCrew)
 chat = CRUDChat(Chat)

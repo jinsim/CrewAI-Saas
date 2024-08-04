@@ -84,6 +84,9 @@ class Crew(ResponseBase):
 
     table_name: ClassVar[str] = "crew"
 
+class CrewWithTask(Crew):
+    tasks: Optional[tuple] = None
+
 
 # Properties properties stored in DB
 class CrewInDB(InDBBase):
@@ -138,6 +141,9 @@ class Task(ResponseBase):
 
 class TaskWithContext(Task):
     context: Optional[list] = None
+
+class TaskWithAgent(TaskWithContext):
+    agents: Optional[list] = None
 
 class TaskInDB(InDBBase):
     crew_id: int
@@ -220,6 +226,10 @@ class Agent(ResponseBase):
 
     table_name: ClassVar[str] = "agent"
 
+class AgentWithTool(Agent):
+    tools: Optional[list] = None
+
+
 class AgentInDB(InDBBase):
     task_id: int
     name: Optional[str]
@@ -229,9 +239,6 @@ class AgentInDB(InDBBase):
     llm_id: int
     tools: Optional[list]
     is_deleted: bool
-
-class AgentWithTool(Agent):
-    tools: Optional[list] = None
 
 
 #   public.tool (
