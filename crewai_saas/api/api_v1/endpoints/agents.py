@@ -1,14 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 from typing import Annotated
-from fastapi import FastAPI, Path, Query
-from datetime import datetime
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
-from crewai_saas.crud import crew, task, task_context, agent, tool
-from crewai_saas.schema import Crew, CrewCreate, CrewUpdate, Task, TaskCreate, TaskUpdate, TaskWithContext, Agent, AgentCreate, AgentUpdate, Tool, AgentWithTool
+from crewai_saas.crud import agent, tool
+from crewai_saas.schema import Agent, AgentCreate, AgentUpdate, Tool, AgentWithTool
 
 router = APIRouter()
-
 
 @router.post("/")
 async def create_agent(agent_in: AgentCreate, session: SessionDep) -> Agent:

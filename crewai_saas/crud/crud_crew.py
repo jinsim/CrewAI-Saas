@@ -63,8 +63,8 @@ class CRUDAgent(CRUDBase[Agent, AgentCreate, AgentUpdate]):
     async def get_all(self, db: AsyncClient) -> list[Agent]:
         return await super().get_all(db)
 
-    async def get_all_with_too_by_task_id(self, db: AsyncClient, task_id: int) -> list[AgentWithTool]:
-        data, count = await db.table(self.model.table_name).select("*").eq("task_id", task_id).execute()
+    async def get_all_active_by_crew_id(self, db: AsyncClient, crew_id: int) -> list[Agent]:
+        data, count = await db.table(self.model.table_name).select("*").eq("crew_id", crew_id).eq("is_deleted", False).execute()
         _, got = data
         return [self.model(**item) for item in got]
 

@@ -1,11 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 from typing import Annotated
-from fastapi import FastAPI, Path, Query
-from datetime import datetime
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
-from crewai_saas.crud import crew, task, task_context, agent, tool
-from crewai_saas.schema import Crew, CrewCreate, CrewUpdate, Task, TaskCreate, TaskUpdate, TaskWithContext, Agent, AgentCreate, AgentUpdate, Tool, AgentWithTool
+from crewai_saas.crud import task, task_context
+from crewai_saas.schema import Task, TaskCreate, TaskUpdate, TaskWithContext
 
 router = APIRouter()
 
