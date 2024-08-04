@@ -23,9 +23,6 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Crew]:
         return await super().get_multi_by_owner(db, user_id=user_id)
 
-    async def update(self, db: AsyncClient, *, obj_in: CrewUpdate) -> Crew:
-        return await super().update(db, obj_in=obj_in)
-
     async def delete(self, db: AsyncClient, *, id: int) -> Crew:
         return await super().delete(db, id=id)
 
@@ -53,9 +50,6 @@ class CRUDTask(CRUDBase[Task, TaskCreate, TaskUpdate]):
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Task]:
         return await super().get_multi_by_owner(db, user_id=user_id)
 
-    async def update(self, db: AsyncClient, *, obj_in: TaskUpdate) -> Task:
-        return await super().update(db, obj_in=obj_in)
-
     async def delete(self, db: AsyncClient, *, id: int) -> Task:
         return await super().delete(db, id=id)
 
@@ -69,11 +63,6 @@ class CRUDAgent(CRUDBase[Agent, AgentCreate, AgentUpdate]):
     async def get_all(self, db: AsyncClient) -> list[Agent]:
         return await super().get_all(db)
 
-    async def get_all_by_task_id(self, db: AsyncClient, task_id: int) -> list[Agent]:
-        data, count = await db.table(self.model.table_name).select("*").eq("task_id", task_id).execute()
-        _, got = data
-        return [self.model(**item) for item in got]
-
     async def get_all_with_too_by_task_id(self, db: AsyncClient, task_id: int) -> list[AgentWithTool]:
         data, count = await db.table(self.model.table_name).select("*").eq("task_id", task_id).execute()
         _, got = data
@@ -81,9 +70,6 @@ class CRUDAgent(CRUDBase[Agent, AgentCreate, AgentUpdate]):
 
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Agent]:
         return await super().get_multi_by_owner(db, user_id=user_id)
-
-    async def update(self, db: AsyncClient, *, obj_in: AgentUpdate) -> Agent:
-        return await super().update(db, obj_in=obj_in)
 
     async def delete(self, db: AsyncClient, *, id: int) -> Agent:
         return await super().delete(db, id=id)
@@ -105,9 +91,6 @@ class CRUDTaskContext(CRUDBase[TaskContext, TaskContextCreate, TaskContextUpdate
 
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[TaskContext]:
         return await super().get_multi_by_owner(db, user_id=user_id)
-
-    async def update(self, db: AsyncClient, *, obj_in: TaskContextUpdate) -> TaskContext:
-        return await super().update(db, obj_in=obj_in)
 
     async def delete(self, db: AsyncClient, *, id: int) -> TaskContext:
         return await super().delete(db, id=id)

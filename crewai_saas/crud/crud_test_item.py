@@ -9,7 +9,7 @@ class CRUDTestItem(CRUDBase[TestItem, TestItemCreate, TestItemUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: TestItemCreate) -> TestItem:
         return await super().create(db, obj_in=obj_in)
 
-    async def get(self, db: AsyncClient, *, id: str) -> TestItem | None:
+    async def get(self, db: AsyncClient, *, id: int) -> TestItem | None:
         return await super().get(db, id=id)
 
     async def get_all(self, db: AsyncClient) -> list[TestItem]:
@@ -18,10 +18,7 @@ class CRUDTestItem(CRUDBase[TestItem, TestItemCreate, TestItemUpdate]):
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[TestItem]:
         return await super().get_multi_by_owner(db, user_id=user_id)
 
-    async def update(self, db: AsyncClient, *, obj_in: TestItemUpdate) -> TestItem:
-        return await super().update(db, obj_in=obj_in)
-
-    async def delete(self, db: AsyncClient, *, id: str) -> TestItem:
+    async def delete(self, db: AsyncClient, *, id: int) -> TestItem:
         return await super().delete(db, id=id)
 
 

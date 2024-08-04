@@ -54,8 +54,8 @@ class CRUDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType, UpdateS
         _, created = data
         return self.model(**created[0])
 
-    async def update(self, db: AsyncClient, *, obj_in: UpdateSchemaType) -> ModelType:
-        data, _ = await db.table(self.model.table_name).update(obj_in.model_dump()).eq("id", obj_in.id).execute()
+    async def update(self, db: AsyncClient, *, obj_in: UpdateSchemaType, id: int) -> ModelType:
+        data, _ = await db.table(self.model.table_name).update(obj_in.model_dump()).eq("id", id).execute()
         _, updated = data
         return self.model(**updated[0])
 

@@ -24,9 +24,6 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[User]:
         return await super().get_multi_by_owner(db, user_id=user_id)
 
-    async def update(self, db: AsyncClient, *, obj_in: UserUpdate) -> User:
-        return await super().update(db, obj_in=obj_in)
-
     async def delete(self, db: AsyncClient, *, id: int) -> User:
         return await super().delete(db, id=id)
 
@@ -61,9 +58,6 @@ class CRUDApiKey(CRUDBase[ApiKey, ApiKeyCreate, ApiKeyUpdate]):
 
     async def get_all_active_by_owner(self, db: AsyncClient, user_id: int) -> list[ApiKey]:
         return await super().get_all_active_by_owner(db, user_id=user_id)
-
-    async def update(self, db: AsyncClient, *, obj_in: ApiKeyUpdate) -> ApiKey:
-        return await super().update(db, obj_in=obj_in)
 
     async def delete(self, db: AsyncClient, *, id: int) -> ApiKey:
         return await super().delete(db, id=id)
