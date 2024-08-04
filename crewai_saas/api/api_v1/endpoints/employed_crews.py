@@ -4,8 +4,8 @@ from fastapi import FastAPI, Path, Query, Request, Response
 from datetime import datetime
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
-from crewai_saas.crud import employed_crew, chat, message
-from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, MessageCreate, MessageUpdate, Message
+from crewai_saas.crud import employed_crew, chat, message, cycle
+from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, MessageCreate, MessageUpdate, Message, CycleUpdate, CycleCreate, Cycle
 from crewai_saas.service import crewai
 
 router = APIRouter()
@@ -70,3 +70,28 @@ async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of 
 async def read_messages(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                         chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep) -> list[Message]:
     return await message.get_all_by_chat_id(session, chat_id=chat_id)
+
+
+#cycle
+@router.get("/{employed_crew_id}/chats/{chat_id}/messages/{message_id}/cycles/{cycle_id}")
+async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                             chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
+                             message_id: Annotated[int, Path(title="The ID of the Message to get")],
+                             cycle_id: Annotated[int, Path(title="The ID of the Cycle to get")], session: SessionDep) -> Message | None:
+    return await cycle.get(session, id=message_id)
+
+@router.get("/{employed_crew_id}/chats/{chat_id}/messages/{message_id}/cycles")
+async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                             chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
+                             message_id: Annotated[int, Path(title="The ID of the Message to get")],
+                             cycle_id: Annotated[int, Path(title="The ID of the Cycle to get")], session: SessionDep) -> Message | None:
+    return await cycle.get(session, id=message_id)
+
+
+@router.post("/{employed_crew_id}/chats/{chat_id}/messages/{message_id}/cycles")
+async def create_cycle(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                       chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
+                       message_id: Annotated[int, Path(title="The ID of the Message to get")],
+                       cycle_in: CycleCreate, session: SessionDep) -> Cycle:
+    return await cycle.create(session, obj_in=cycle_in)
+
