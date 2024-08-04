@@ -1,7 +1,7 @@
 from supabase_py_async import AsyncClient
 
 from crewai_saas.crud.base import CRUDBase, ReadBase
-from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate
+from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate
 from crewai_saas.schema.auth import UserIn
 
 class CRUDEmployedCrew(CRUDBase[EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate]):
@@ -21,10 +21,14 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
+class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
+    pass
+
 
 
 
 employed_crew = CRUDEmployedCrew(EmployedCrew)
 chat = CRUDChat(Chat)
 message = CRUDMessage(Message)
+cycle = CRUDCycle(Cycle)
 
