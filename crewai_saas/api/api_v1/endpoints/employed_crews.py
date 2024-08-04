@@ -57,7 +57,7 @@ async def delete_chat(employed_crew_id: Annotated[int, Path(title="The ID of the
 
 
 # Run Crew 예제
-@router.get("/{employed_crew_id}/response")
+@router.get("/{employed_crew_id}/info", description="고용된 크루 하위의 모든 정보를 반환")
 async def start_chat(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                       req: Request, session: SessionDep) -> Response:
     return await crewai.makeResponse(session=session, employed_crew_id=employed_crew_id)

@@ -50,7 +50,8 @@ async def read_crew_tasks(crew_id: Annotated[int, Path(title="The ID of the Crew
     ret = []
     for it in task_list:
         task_contexts = await task_context.get_child_task_id_all_by_task_id(session, task_id=it.id)
-        ret.append(TaskWithContext(**it.dict(), context=task_contexts))
+        ret.append(TaskWithContext(**it.dict(), context_task_ids=task_contexts))
+
     return ret
 
 @router.put("/{crew_id}/tasks/{task_id}")

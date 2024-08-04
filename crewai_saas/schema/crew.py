@@ -140,7 +140,7 @@ class Task(ResponseBase):
     table_name: ClassVar[str] = "task"
 
 class TaskWithContext(Task):
-    context: Optional[list] = None
+    context_task_ids: Optional[list] = None
 
 class TaskWithAgent(TaskWithContext):
     agents: Optional[list] = None

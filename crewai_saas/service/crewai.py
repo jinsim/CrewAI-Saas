@@ -1,5 +1,5 @@
 from crewai_saas import crud
-from crewai_saas.schema import TaskWithContext, AgentWithTool, CrewWithTask
+from crewai_saas.schema import TaskWithContext, AgentWithTool, CrewWithTask, TaskWithAgent
 
 from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate
 import logging
@@ -28,18 +28,17 @@ async def makeResponse(session, employed_crew_id):
         return Exception("Task not found.")
 
     async def get_task_with_agents(task):
-        print(task)
+        context_task_id = await crud.task_context.get_child_task_id_all_by_task_id(session, task_id=task.id)
         agents = await crud.agent.get_all_by_task_id(session, task.id)
         agent_with_tools = [
             AgentWithTool(**agent.dict(), tools=await crud.tool.get_all_by_ids(session, agent.tool_ids))
             for agent in agents
         ]
-
-        task_with_agent = TaskWithContext(**task.dict(), context=agent_with_tools)
+        task_with_agent = TaskWithAgent(**task.dict(), context_task_ids=context_task_id, agents=agent_with_tools)
         return task_with_agent
 
     task_with_agents = await asyncio.gather(*[get_task_with_agents(task) for task in tasks])
     crew_dict = crew.dict()
     crew_dict['tasks'] = task_with_agents
     crew_with_task = CrewWithTask(**crew_dict)
-    return {"crew_with_task": crew_with_task}
+    return {"crew": crew_with_task}
