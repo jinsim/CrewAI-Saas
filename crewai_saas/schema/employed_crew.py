@@ -51,7 +51,6 @@ class EmployedCrewInDB(InDBBase):
 
 class ChatCreate(CreateBase):
     employed_crew_id: int
-    is_deleted: Optional[bool] = False
 
 class ChatUpdate(UpdateBase):
     pass
@@ -152,9 +151,9 @@ class CycleUpdate(UpdateBase):
 
 class Cycle(ResponseBase):
     status: str
-    cost: float
-    price: float
-    total_token: int
+    cost: Optional[float]
+    price: Optional[float]
+    total_token: Optional[int]
     chat_id: int
 
     table_name: ClassVar[str] = "cycle"

@@ -21,6 +21,11 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
+    async def get_all_by_cycle_id(self, db: AsyncClient, *, cycle_id: int) -> list[Message]:
+        data, count = await db.table(self.model.table_name).select("*").eq("cycle_id", cycle_id).order("id", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
 class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
 
     async def get_all_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
