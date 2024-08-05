@@ -2,6 +2,7 @@ from typing import ClassVar
 from typing import List, Optional
 from datetime import datetime
 
+from crewai_saas.core import CrewStatus
 from crewai_saas.schema.base import CreateBase, InDBBase, ResponseBase, UpdateBase
 
 
@@ -35,7 +36,7 @@ class CrewCreate(CreateBase):
     is_sequential: Optional[bool] = False
     input_price: Optional[float] = 0
     output_price: Optional[float] = 0
-    status: Optional[str] = "PRIVATE"
+    status: Optional[CrewStatus] = CrewStatus.PRIVATE
     use_history: Optional[bool] = False
     usage: Optional[int] = 0
     average_token_usage: Optional[int] = 0
@@ -53,7 +54,7 @@ class CrewUpdate(UpdateBase):
     is_sequential: bool
     input_price: Optional[float] = 0
     output_price: Optional[float] = 0
-    status: str
+    status: CrewStatus
     use_history: Optional[bool] = False
     updated_at: Optional[str] = str(datetime.now())
     llm_id: Optional[int] = None
@@ -71,7 +72,7 @@ class Crew(ResponseBase):
     is_sequential: bool
     input_price: Optional[float]
     output_price: Optional[float]
-    status: str
+    status: CrewStatus
     use_history: bool
     usage: int
     average_token_usage: int
@@ -95,7 +96,7 @@ class CrewInDB(InDBBase):
     is_sequential: bool = False
     input_price: Optional[float]
     output_price: Optional[float]
-    status: str = "PRIVATE"
+    sstatus: CrewStatus = CrewStatus.PRIVATE
     use_history: bool = False
     usage: int = 0
     average_token_usage: int = 0
