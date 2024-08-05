@@ -17,7 +17,7 @@ async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: Se
 @router.put("/{employed_crew_id}")
 async def update_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                                employed_crew_in: EmployedCrewUpdate, session: SessionDep) -> EmployedCrew:
-    return await employed_crew.update(session, obj_in=employed_crew_in)
+    return await employed_crew.update(session, obj_in=employed_crew_in, id=employed_crew_id)
 
 @router.get("/users/{user_id}")
 async def read_employed_crews(user_id: Annotated[int, Path(title="The ID of the User to get")], session: SessionDep) -> list[EmployedCrew]:
@@ -33,32 +33,11 @@ async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The 
     return await employed_crew.soft_delete(session, id=employed_crew_id)
 
 
-@router.post("/{employed_crew_id}/chats")
-async def create_chat(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                      chat_in: ChatCreate, session: SessionDep) -> Chat:
-    return await chat.create(session, obj_in=chat_in)
-
-@router.get("/{employed_crew_id}/chats")
-async def read_chats(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> list[Chat]:
-    return await chat.get_all_active_by_employed_crew_id(session, employed_crew_id=employed_crew_id)
-
-
-@router.get("/{employed_crew_id}/chats/{chat_id}")
-async def read_chat_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                          chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep) -> Chat | None:
-    return await chat.get_active(session, id=chat_id)
-
-@router.delete("/{employed_crew_id}/chats/{chat_id}")
-async def delete_chat(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                      chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep) -> Chat:
-    return await chat.soft_delete(session, id=chat_id)
-
-
 # Run Crew 예제
 @router.get("/{employed_crew_id}/info", description="고용된 크루 하위의 모든 정보를 반환")
 async def get_char_info(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                       req: Request, session: SessionDep) -> Response:
-    return await crewai.makeResponse(session=session, employed_crew_id=employed_crew_id)
+    return await crewai.make_response(session=session, employed_crew_id=employed_crew_id)
 
 @router.post("/{employed_crew_id}/chats/{chat_id}/messages")
 async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
@@ -78,14 +57,14 @@ async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID o
                              chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                              message_id: Annotated[int, Path(title="The ID of the Message to get")],
                              cycle_id: Annotated[int, Path(title="The ID of the Cycle to get")], session: SessionDep) -> Message | None:
-    return await cycle.get(session, id=message_id)
+    return await cycle.get(session, id=cycle_id)
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/messages/{message_id}/cycles")
 async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                              chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                              message_id: Annotated[int, Path(title="The ID of the Message to get")],
                              cycle_id: Annotated[int, Path(title="The ID of the Cycle to get")], session: SessionDep) -> Message | None:
-    return await cycle.get(session, id=message_id)
+    return await cycle.get_all_by_message_id(session, id=message_id)
 
 
 @router.post("/{employed_crew_id}/chats/{chat_id}/messages/{message_id}/cycles")
