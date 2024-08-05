@@ -97,7 +97,7 @@ class CrewInDB(InDBBase):
     is_sequential: bool = False
     input_price: Optional[float]
     output_price: Optional[float]
-    sstatus: CrewStatus = CrewStatus.PRIVATE
+    status: CrewStatus = CrewStatus.PRIVATE
     use_history: bool = False
     usage: int = 0
     average_token_usage: int = 0
