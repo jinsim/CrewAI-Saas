@@ -24,7 +24,7 @@ class CreateBase(BaseModel):
 # in
 class UpdateBase(BaseModel):
     # inherent to add more properties for updating
-    id: int
+    pass
 
 
 # Properties to receive on item delete

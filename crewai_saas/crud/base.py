@@ -9,6 +9,11 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=UpdateBase)
 DeleteSchemaType = TypeVar("DeleteSchemaType", bound=DeleteBase)
 
 
+class ObjectNotFoundException(Exception):
+    def __init__(self, id: int):
+        super().__init__(f"Object with id {id} does not exist.")
+        self.id = id
+
 class ReadBase(Generic[ModelType]):
     def __init__(self, model: type[ModelType]):
         self.model = model
@@ -54,8 +59,8 @@ class CRUDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType, UpdateS
         _, created = data
         return self.model(**created[0])
 
-    async def update(self, db: AsyncClient, *, obj_in: UpdateSchemaType) -> ModelType:
-        data, _ = await db.table(self.model.table_name).update(obj_in.model_dump()).eq("id", obj_in.id).execute()
+    async def update(self, db: AsyncClient, *, obj_in: UpdateSchemaType, id: int) -> ModelType:
+        data, _ = await db.table(self.model.table_name).update(obj_in.model_dump()).eq("id", id).execute()
         _, updated = data
         return self.model(**updated[0])
 
@@ -68,4 +73,7 @@ class CRUDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType, UpdateS
         obj_in: DeleteSchemaType = DeleteBase(id=id)
         data, _ = await db.table(self.model.table_name).update(obj_in.model_dump()).eq("id", obj_in.id).execute()
         _, updated = data
-        return self.model(**updated[0])
+        try:
+            return self.model(**updated[0])
+        except IndexError:
+            raise ObjectNotFoundException(id)

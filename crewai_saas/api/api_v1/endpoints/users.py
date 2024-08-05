@@ -27,7 +27,7 @@ async def create_user(user_in: UserCreate, session: SessionDep) -> User:
 @router.put("/{user_id}")
 async def update_user(user_id: Annotated[int, Path(title="The ID of the User to get")],
                       user_in: UserUpdate, session: SessionDep) -> User:
-    return await user.update(session, obj_in=user_in)
+    return await user.update(session, obj_in=user_in, id=user_id)
 
 @router.get("/{user_id}")
 async def read_user_by_id(user_id: Annotated[int, Path(title="The ID of the User to get")],
@@ -53,7 +53,7 @@ async def read_api_keys(user_id: Annotated[int, Path(title="The ID of the User t
 async def update_api_key(user_id: Annotated[int, Path(title="The ID of the User to get")],
                          api_key_id: Annotated[int, Path(title="The ID of the ApiKey to get")],
                          api_key_in: ApiKeyUpdate, session: SessionDep) -> ApiKey:
-    return await api_key.update(session, obj_in=api_key_in)
+    return await api_key.update(session, obj_in=api_key_in, id=api_key_id)
 
 @router.delete("/{user_id}/api_keys/{api_key_id}")
 async def delete_api_key(user_id: Annotated[int, Path(title="The ID of the User to get")],

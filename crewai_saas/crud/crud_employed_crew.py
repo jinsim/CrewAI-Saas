@@ -1,7 +1,7 @@
 from supabase_py_async import AsyncClient
 
 from crewai_saas.crud.base import CRUDBase, ReadBase
-from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate
+from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate
 from crewai_saas.schema.auth import UserIn
 
 class CRUDEmployedCrew(CRUDBase[EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate]):
@@ -21,10 +21,23 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
+    async def get_all_by_cycle_id(self, db: AsyncClient, *, cycle_id: int) -> list[Message]:
+        data, count = await db.table(self.model.table_name).select("*").eq("cycle_id", cycle_id).order("id", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
+class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
+
+    async def get_all_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
+        data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).order("id", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
 
 
 
 employed_crew = CRUDEmployedCrew(EmployedCrew)
 chat = CRUDChat(Chat)
 message = CRUDMessage(Message)
+cycle = CRUDCycle(Cycle)
 
