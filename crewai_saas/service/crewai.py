@@ -1,7 +1,7 @@
 from textwrap import dedent
 
 from crewai_saas import crud
-from crewai_saas.schema import TaskWithContext, AgentWithTool, CrewWithTask, TaskWithAgent
+from crewai_saas.schema import TaskWithContext, AgentWithTool, CrewWithAll
 
 from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate
 import logging
@@ -29,20 +29,25 @@ async def make_response(session, employed_crew_id):
         logger.error(f"Task not found. crew_id: {crew.id}")
         return Exception("Task not found.")
 
-    # async def get_task_with_agents(task):
-    #     context_task_id = await crud.task_context.get_child_task_id_all_by_task_id(session, task_id=task.id)
-    #     agents = await crud.agent.get_all_by_task_id(session, task.id)
-    #     agent_with_tools = [
-    #         AgentWithTool(**agent.dict(), tools=await crud.tool.get_all_by_ids(session, agent.tool_ids))
-    #         for agent in agents
-    #     ]
-    #     task_with_agent = TaskWithAgent(**task.dict(), context_task_ids=context_task_id, agents=agent_with_tools)
-    #     return task_with_agent
+    tasks_with_context = [
+        TaskWithContext(**task.dict(), context_task_ids=await crud.task_context.get_child_task_id_all_by_task_id(session, task.id))
+        for task in tasks
+    ]
 
-    task_with_agents = await asyncio.gather(*[get_task_with_agents(task) for task in tasks])
+    agents = await crud.agent.get_all_active_by_crew_id(session, crew.id)
+    if not agents:
+        logger.error(f"Agent not found. crew_id: {crew.id}")
+        return Exception("Agent not found.")
+
+    agent_with_tools = [
+        AgentWithTool(**agent.dict(), tools=await crud.tool.get_all_by_ids(session, agent.tool_ids))
+        for agent in agents
+    ]
+
     crew_dict = crew.dict()
-    crew_dict['tasks'] = task_with_agents
-    crew_with_task = CrewWithTask(**crew_dict)
+    crew_dict['tasks'] = tasks_with_context
+    crew_dict['agents'] = agent_with_tools
+    crew_with_task = CrewWithAll(**crew_dict)
     return {"crew": crew_with_task}
 
 # async def start(session, employed_crew_id):
