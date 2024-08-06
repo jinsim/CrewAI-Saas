@@ -36,6 +36,10 @@ class ReadBase(Generic[ModelType]):
         query = db.table(self.model.table_name).select("*").eq("id", id).eq("is_deleted", False)
         return await self._execute_single_query(query)
 
+    async def get_active_by_email(self, db: AsyncClient, *, email: str) -> Optional[ModelType]:
+        query = db.table(self.model.table_name).select("*").eq("email", email).eq("is_deleted", False)
+        return await self._execute_single_query(query)
+
     async def get_all(self, db: AsyncClient) -> List[ModelType]:
         query = db.table(self.model.table_name).select("*")
         return await self._execute_multi_query(query)
