@@ -3,7 +3,7 @@ from typing import Annotated
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import task, task_context
-from crewai_saas.schema import Task, TaskCreate, TaskUpdate, TaskWithContext
+from crewai_saas.model import Task, TaskCreate, TaskUpdate, TaskWithContext
 
 router = APIRouter()
 

@@ -1,8 +1,8 @@
 from supabase_py_async import AsyncClient
 
 from crewai_saas.crud.base import CRUDBase
-from crewai_saas.schema import Task, TaskCreate, TaskUpdate
-from crewai_saas.schema.auth import UserIn
+from crewai_saas.model import Task, TaskCreate, TaskUpdate
+from crewai_saas.model.auth import UserIn
 
 class CRUDTask(CRUDBase[Task, TaskCreate, TaskUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: TaskCreate) -> Task:

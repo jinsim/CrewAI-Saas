@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import test_item
-from crewai_saas.schema import TestItem, TestItemCreate, TestItemUpdate
+from crewai_saas.model import TestItem, TestItemCreate, TestItemUpdate
 
 router = APIRouter()
 

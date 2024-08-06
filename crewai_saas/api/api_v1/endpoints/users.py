@@ -5,7 +5,7 @@ from datetime import datetime
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import user, country, api_key
-from crewai_saas.schema import User, UserCreate, UserUpdate, Country, ApiKey, ApiKeyCreate, ApiKeyUpdate
+from crewai_saas.model import User, UserCreate, UserUpdate, Country, ApiKey, ApiKeyCreate, ApiKeyUpdate
 
 router = APIRouter()
 

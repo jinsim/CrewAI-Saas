@@ -9,7 +9,7 @@ from supabase_py_async import AsyncClient, create_client
 from supabase_py_async.lib.client_options import ClientOptions
 
 from crewai_saas.core.config import settings
-from crewai_saas.schema.auth import UserIn
+from crewai_saas.model.auth import UserIn
 
 super_client: AsyncClient | None = None
 
