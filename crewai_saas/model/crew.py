@@ -43,6 +43,8 @@ class CrewCreate(CreateBase):
     llm_id: Optional[int] = None
     tags: Optional[List[str]] = None
     task_ids: Optional[List[int]] = None
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
 
 
 # Properties to receive on item update
