@@ -1,6 +1,7 @@
 from typing import ClassVar
 from typing import Optional
 from datetime import datetime
+from crewai_saas.core import CycleStatus
 
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
 
@@ -140,27 +141,40 @@ class MessageInDB(InDBBase):
 #   ) tablespace pg_default;
 
 class CycleCreate(CreateBase):
-    status: str
+    status: CycleStatus
     cost: Optional[float] = 0
     price: Optional[float] = 0
     total_token: Optional[int] = 0
     chat_id: int
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
+
+
 
 class CycleUpdate(UpdateBase):
-    pass
+    class Config:
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
+
 
 class Cycle(ResponseBase):
-    status: str
+    status: CycleStatus
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]
     chat_id: int
 
     table_name: ClassVar[str] = "cycle"
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 class CycleInDB(InDBBase):
-    status: str
+    status: CycleStatus
     cost: float
     price: float
     total_token: int
     chat_id: int
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
