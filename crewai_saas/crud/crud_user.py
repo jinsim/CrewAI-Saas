@@ -15,6 +15,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def get_active(self, db: AsyncClient, *, id: int) -> User | None:
         return await super().get_active(db, id=id)
 
+    async def get_active_by_email(self, db: AsyncClient, *, email: str) -> User | None:
+        return await super().get_active_by_email(db, email=email)
+
     async def get_all(self, db: AsyncClient) -> list[User]:
         return await super().get_all(db)
 
