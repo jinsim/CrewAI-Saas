@@ -1,6 +1,6 @@
 from typing import ClassVar
 from typing import Optional
-from datetime import datetime
+from crewai_saas.core.enum import CycleStatus, MessageRole
 
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
 
@@ -93,11 +93,15 @@ class MessageCreate(CreateBase):
     content: str
     task_id: Optional[int] = None
     cycle_id: Optional[int] = None
-    role: str
+    role: MessageRole
     chat_id: int
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 class MessageUpdate(UpdateBase):
-    pass
+    class Config:
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 
 class Message(ResponseBase):
@@ -107,10 +111,14 @@ class Message(ResponseBase):
     content: str
     task_id: Optional[int]
     cycle_id: Optional[int]
-    role: str
+    role: MessageRole
     chat_id: int
 
     table_name: ClassVar[str] = "message"
+
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 class MessageInDB(InDBBase):
     cost: float
@@ -119,8 +127,11 @@ class MessageInDB(InDBBase):
     content: str
     task_id: int
     cycle_id: int
-    role: str
+    role: MessageRole
     chat_id: int
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 
 # cycle
@@ -140,27 +151,48 @@ class MessageInDB(InDBBase):
 #   ) tablespace pg_default;
 
 class CycleCreate(CreateBase):
-    status: str
+    status: CycleStatus
     cost: Optional[float] = 0
     price: Optional[float] = 0
     total_token: Optional[int] = 0
+<<<<<<< HEAD
     chat_id: Optional[int] = None
+=======
+    chat_id: int
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
+
+
+>>>>>>> e72a46628b992956b41c910ad85acaa8c1d87d9a
 
 class CycleUpdate(UpdateBase):
-    pass
+    class Config:
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
+
 
 class Cycle(ResponseBase):
-    status: str
+    status: CycleStatus
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]
     chat_id: Optional[int] = None
 
     table_name: ClassVar[str] = "cycle"
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 class CycleInDB(InDBBase):
-    status: str
+    status: CycleStatus
     cost: float
     price: float
     total_token: int
+<<<<<<< HEAD
     chat_id: Optional[int] = None
+=======
+    chat_id: int
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
+>>>>>>> e72a46628b992956b41c910ad85acaa8c1d87d9a
