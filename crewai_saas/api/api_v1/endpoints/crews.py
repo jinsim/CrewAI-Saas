@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, Response
 from typing import Annotated
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import crew
-from crewai_saas.service import crewai
 from crewai_saas.model import Crew, CrewCreate, CrewUpdate
 
 router = APIRouter()
@@ -30,8 +29,3 @@ async def delete_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
                       session: SessionDep) -> Crew:
     return await crew.soft_delete(session, id=crew_id)
 
-
-@router.get("/{crew_id}/start")
-async def start_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                     session: SessionDep) -> Crew:
-    return await crewai.start(session, crew_id=crew_id)

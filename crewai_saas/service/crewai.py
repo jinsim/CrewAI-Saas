@@ -1,10 +1,10 @@
 from textwrap import dedent
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
-
+import threading
 
 from crewai_saas import crud
-from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll
+from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll, CycleCreate, MessageCreate
 from crewai_saas.tool import function_map
 import logging
 
@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a',
 logger = logging.getLogger(__name__)
 
 import asyncio
-
 
 # 나중에 수정해야함.
 llm = ChatOpenAI(model="gpt-4o-mini")
@@ -28,6 +27,39 @@ llm = ChatOpenAI(model="gpt-4o-mini")
 # def async_callback_wrapper(self, callback, *args, **kwargs):
 #     asyncio.run_coroutine_threadsafe(callback(*args, **kwargs), self.loop)
 
+def start_loop(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+loop = asyncio.new_event_loop()
+thread = threading.Thread(target=start_loop, args=(loop,))
+thread.start()
+
+async def append_event(cycle_id, task_id, event_data):
+    try:
+        # with jobs_lock:
+        cycle =  await crud.cycle.get(cycle_id)
+        if cycle is None:
+            # logger.info("Job does not exist  %s", job_id)
+            print("cycle does not exist  %s", cycle_id)
+            return {'message': ("cycle does not exist  %s", cycle_id)}
+        else:
+            print("Appending message for cycle : %s task : %s event : %s", cycle_id, task_id, event_data)
+            # logger.info("Appending event for job %s: %s", job_id, event_data)
+            message_response = await crud.message.create(MessageCreate(content=event_data, task_id=task_id, role="AGENT"))
+            return message_response
+    except Exception as e:
+        print("Error in append_event", e)
+        return {'message': "Error in append_event"}
+
+async def append_event_callback(cycle_id, task_id, task_output):
+    logger.info("Callback called: %s", task_output)
+    await append_event(cycle_id, task_id, task_output.exported_output)
+
+
+def async_callback_wrapper(callback, *args, **kwargs):
+    print("async_callback_wrapper called")
+    asyncio.run_coroutine_threadsafe(callback(*args, **kwargs), loop)
 
 async def make_response(session, employed_crew_id):
     employed_crew = await crud.employed_crew.get(session, id=employed_crew_id)
@@ -78,6 +110,7 @@ async def start(session, crew_id):
         logger.error(f"Agent not found. crew_id: {crew.id}")
         return Exception("Agent not found.")
 
+    cycle = await crud.cycle.create(session, obj_in=CycleCreate(crew_id=crew_id, status="STARTED"))
     async def get_agent(agent):
         # Fetch tools from the database
         tools_from_db = await crud.tool.get_all_by_ids(session, agent.tool_ids)
@@ -121,11 +154,13 @@ async def start(session, crew_id):
     task_dict = {}
 
     async def get_task(task):
+        print(task.dict())
         return Task(
             description=task.description,
             expected_output=task.expected_output,
             agent=agent_dict[task.agent_id],
             context=[task_dict[task_id] for task_id in await crud.task_context.get_child_task_id_all_by_task_id(session, task.id)],
+            callback=lambda task_output: async_callback_wrapper(append_event_callback, cycle.id, task.id, task_output),
         )
 
     for task_id in crew.task_ids:
@@ -137,4 +172,4 @@ async def start(session, crew_id):
         verbose=True,
     )
     # result = crew.kickoff()
-    # return result
+    return None

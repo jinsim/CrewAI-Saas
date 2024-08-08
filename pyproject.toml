@@ -18,6 +18,7 @@ supabase-py-async = "^2.5.6"
 sec-api = "^1.0.18"
 unstructured = "^0.15.0"
 yfinance = "^0.2.41"
+pyjwt = "^2.9.0"
 
 [build-system]
 requires = ["poetry-core"]

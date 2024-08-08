@@ -144,7 +144,7 @@ class CycleCreate(CreateBase):
     cost: Optional[float] = 0
     price: Optional[float] = 0
     total_token: Optional[int] = 0
-    chat_id: int
+    chat_id: Optional[int] = None
 
 class CycleUpdate(UpdateBase):
     pass
@@ -154,7 +154,7 @@ class Cycle(ResponseBase):
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]
-    chat_id: int
+    chat_id: Optional[int] = None
 
     table_name: ClassVar[str] = "cycle"
 
@@ -163,4 +163,4 @@ class CycleInDB(InDBBase):
     cost: float
     price: float
     total_token: int
-    chat_id: int
+    chat_id: Optional[int] = None

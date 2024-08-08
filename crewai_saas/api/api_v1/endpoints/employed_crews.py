@@ -6,7 +6,7 @@ from datetime import datetime
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import employed_crew, chat, message, cycle
 from crewai_saas.model import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, MessageCreate, MessageUpdate, Message, CycleUpdate, CycleCreate, Cycle
-from crewai_saas.service import crewai
+from crewai_saas.service import crewai, crewAiService
 
 router = APIRouter()
 
@@ -94,3 +94,8 @@ async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of 
 async def read_messages(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                         chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep) -> list[Message]:
     return await message.get_all_by_chat_id(session, chat_id=chat_id)
+
+@router.get("/{employed_crew_id}/start")
+async def start_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                     session: SessionDep) -> Response:
+    return await crewAiService.CrewAiStartService(session).start(employed_crew_id=employed_crew_id)
