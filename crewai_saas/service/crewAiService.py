@@ -23,7 +23,7 @@ class CrewAiStartService:
         self.session = session
         self.loop = asyncio.get_event_loop()
 
-    async def append_message(self, task_id, message_data):
+    async def append_message(self, task_id, message_data): #특정 작업(task_id)에 메시지를 추가
         logger.info("Appending message for cycle: %s task: %s message: %s", self.cycle_id, task_id, message_data)
         try:
             cycle = await crud.cycle.get(self.session, id=self.cycle_id)
@@ -40,11 +40,11 @@ class CrewAiStartService:
             logger.error("Error in append_message: %s", e)
             return {'message': "Error in append_message"}
 
-    async def append_message_callback(self, task_id, task_output):
+    async def append_message_callback(self, task_id, task_output): #동기적으로 다른 작업이 완료되었을 때 실행
         logger.info("Callback called: %s", task_output)
         await self.append_message(task_id, task_output.exported_output)
 
-    def async_callback_wrapper(self, callback, *args, **kwargs):
+    def async_callback_wrapper(self, callback, *args, **kwargs): #비동기 콜백을 실행하기 위한 래퍼 함수입니다. 주어진 콜백 함수를 현재 이벤트 루프에서 실행
         logger.info("Async callback wrapper called")
         asyncio.run_coroutine_threadsafe(callback(*args, **kwargs), self.loop)
 
@@ -63,7 +63,7 @@ class CrewAiStartService:
             llm=self.llm
         )
 
-    async def start(self, employed_crew_id):
+    async def start(self, employed_crew_id, chat_id):
         # Fetch the employed_crew
         employed_crew = await crud.employed_crew.get_active(self.session, id=employed_crew_id)
         if not employed_crew:
@@ -83,13 +83,20 @@ class CrewAiStartService:
             logger.error(f"Agents not found for crew_id: {crew.id}")
             raise Exception("Agents not found.")
 
-        # Create a new cycle and store its ID
-        cycle = await crud.cycle.create(self.session, obj_in=CycleCreate(crew_id=crew_id, status="STARTED"))
+        # 사이클이 아예 없거나 최신 사이클이 finished일 경우 -> 사이클 생성
+        # 해당 CHAT의 최신 cycle이 started이거나 edited일 경우 -> 기존 사이클 유지
+        cycle = await crud.cycle.get_latest_by_chat_id(self.session, chat_id)
+        if(cycle is None or cycle.status == "FINISHED"): #생성해야 하는 경우
+            cycle = await crud.cycle.create(self.session,
+                                            obj_in=CycleCreate(crew_id=crew_id, status="STARTED", chat_id=chat_id))
         self.cycle_id = cycle.id
 
-        chat = await (crud.chat.create(self.session, obj_in=ChatCreate(employed_crew_id=employed_crew_id))
-                      if cycle.chat_id is None else crud.chat.get(self.session, id=cycle.chat_id))
-        self.chat_id = chat.id
+        # Create a new cycle and store its ID
+
+
+        #chat = await (crud.chat.create(self.session, obj_in=ChatCreate(employed_crew_id=employed_crew_id))
+                      #if cycle.chat_id is None else crud.chat.get(self.session, id=cycle.chat_id))
+        self.chat_id = chat_id
 
         # Helper function to create Agent instances
         async def get_agent(agent):
