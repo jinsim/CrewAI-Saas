@@ -7,6 +7,8 @@ from crewai_saas import crud
 from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll, CycleCreate, MessageCreate, ChatCreate
 from crewai_saas.tool import function_map
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a',
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -16,7 +18,8 @@ class CrewAiStartService:
     def __init__(self, session):
         self.cycle_id = None
         self.chat_id = None
-        self.llm = ChatOpenAI(model="gpt-4o-mini")
+        #self.llm = ChatOpenAI(model="gpt-4o-mini")
+        self.llm = ChatGoogleGenerativeAI(model="gemini-pro")
         self.session = session
         self.loop = asyncio.get_event_loop()
 
