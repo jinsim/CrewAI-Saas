@@ -2,7 +2,7 @@ from typing import ClassVar
 from typing import List, Optional
 from datetime import datetime
 
-from crewai_saas.core.CrewStatus import CrewStatus
+from crewai_saas.core.enum.CrewStatus import CrewStatus
 
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
 
