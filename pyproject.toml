@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
-crewai = { extras = ["tools"], version = "^0.35.8" }
+crewai = { extras = ["tools"], version = "^0.41.1" }
 fastapi = "^0.111.1"
 uvicorn = "^0.30.3"
 sqlalchemy = "^2.0.31"
@@ -19,6 +19,10 @@ sec-api = "^1.0.18"
 unstructured = "^0.15.0"
 yfinance = "^0.2.41"
 pyjwt = "^2.9.0"
+langchain-google-genai = "1.0.5"
+langchain-core = "0.2.15"
+langchain = "0.2.6"
+langchain-community = "0.2.6"
 
 [build-system]
 requires = ["poetry-core"]
