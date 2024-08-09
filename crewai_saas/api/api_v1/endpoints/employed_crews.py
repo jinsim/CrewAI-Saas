@@ -95,7 +95,8 @@ async def read_messages(employed_crew_id: Annotated[int, Path(title="The ID of t
                         chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep) -> list[Message]:
     return await message.get_all_by_chat_id(session, chat_id=chat_id)
 
-@router.get("/{employed_crew_id}/start")
+@router.get("/{employed_crew_id}/chats/{chat_id}/start")
 async def start_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                    chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                      session: SessionDep) -> Response:
-    return await crewAiService.CrewAiStartService(session).start(employed_crew_id=employed_crew_id)
+    return await crewAiService.CrewAiStartService(session).start(employed_crew_id=employed_crew_id, chat_id=chat_id)
