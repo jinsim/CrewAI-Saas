@@ -2,9 +2,9 @@ from typing import ClassVar
 from typing import List, Optional
 from datetime import datetime
 
-from crewai_saas.core import CrewStatus
-from crewai_saas.schema.base import CreateBase, InDBBase, ResponseBase, UpdateBase
+from crewai_saas.core.enum.CrewStatus import CrewStatus
 
+from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
 
 # request
 # Properties to receive on item creation
@@ -36,13 +36,15 @@ class CrewCreate(CreateBase):
     is_sequential: Optional[bool] = False
     input_price: Optional[float] = 0
     output_price: Optional[float] = 0
-    status: Optional[CrewStatus] = CrewStatus.PRIVATE
+    status: Optional[CrewStatus] = CrewStatus.EDITING
     use_history: Optional[bool] = False
     usage: Optional[int] = 0
     average_token_usage: Optional[int] = 0
     llm_id: Optional[int] = None
     tags: Optional[List[str]] = None
     task_ids: Optional[List[int]] = None
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
 
 
 # Properties to receive on item update
@@ -84,8 +86,7 @@ class Crew(ResponseBase):
 
     table_name: ClassVar[str] = "crew"
 
-class CrewWithTask(Crew):
-    tasks: Optional[tuple] = None
+
 
 
 # Properties properties stored in DB
@@ -96,7 +97,7 @@ class CrewInDB(InDBBase):
     is_sequential: bool = False
     input_price: Optional[float]
     output_price: Optional[float]
-    sstatus: CrewStatus = CrewStatus.PRIVATE
+    status: CrewStatus
     use_history: bool = False
     usage: int = 0
     average_token_usage: int = 0
@@ -144,9 +145,6 @@ class Task(ResponseBase):
 
 class TaskWithContext(Task):
     context_task_ids: Optional[list] = None
-
-class TaskWithAgent(TaskWithContext):
-    agents: Optional[list] = None
 
 class TaskInDB(InDBBase):
     agent_id: Optional[int]
@@ -283,3 +281,6 @@ class AgentInDB(InDBBase):
     is_deleted: bool
 
 
+class CrewWithAll(Crew):
+    tasks: Optional[List[TaskWithContext]]
+    agents: Optional[List[AgentWithTool]]

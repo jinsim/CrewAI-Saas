@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 from typing import Annotated
-from fastapi import FastAPI, Path, Query
+from fastapi import FastAPI, Path, Query,  Depends
+from crewai_saas.core.google_auth_utils import GoogleAuthUtils
 from datetime import datetime
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import user, country, api_key
-from crewai_saas.schema import User, UserCreate, UserUpdate, Country, ApiKey, ApiKeyCreate, ApiKeyUpdate
+from crewai_saas.model import User, UserCreate, UserUpdate, Country, ApiKey, ApiKeyCreate, ApiKeyUpdate
 
 router = APIRouter()
 
@@ -15,6 +16,19 @@ router = APIRouter()
 @router.get("/countries")
 async def read_countries(session: SessionDep) -> list[Country]:
     return await country.get_all(session)
+
+#토큰에서 이메일 정보를 가져와 사용자의 정보를 반환한다.
+@router.get("/user_info")
+async def read_user_by_token(session: SessionDep,
+                         user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> User | None:
+    return await user.get_active_by_email(session, email=user_email)
+
+
+@router.get("/{user_id}")
+async def read_user_by_id(user_id: Annotated[int, Path(title="The ID of the User to get")],
+                          session: SessionDep) -> User | None:
+    return await user.get_active(session, id=user_id)
+
 
 @router.get("/")
 async def read_user(session: SessionDep) -> list[User]:
@@ -28,11 +42,6 @@ async def create_user(user_in: UserCreate, session: SessionDep) -> User:
 async def update_user(user_id: Annotated[int, Path(title="The ID of the User to get")],
                       user_in: UserUpdate, session: SessionDep) -> User:
     return await user.update(session, obj_in=user_in, id=user_id)
-
-@router.get("/{user_id}")
-async def read_user_by_id(user_id: Annotated[int, Path(title="The ID of the User to get")],
-                          session: SessionDep) -> User | None:
-    return await user.get_active(session, id=user_id)
 
 @router.delete("/{user_id}")
 async def delete_user(user_id: Annotated[int, Path(title="The ID of the User to get")],

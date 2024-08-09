@@ -1,7 +1,7 @@
 from typing import Generic, TypeVar, Any, List, Optional
 from supabase_py_async import AsyncClient
-from crewai_saas.schema.auth import UserIn
-from crewai_saas.schema.base import CreateBase, ResponseBase, UpdateBase, DeleteBase
+from crewai_saas.model.auth import UserIn
+from crewai_saas.model.base import CreateBase, ResponseBase, UpdateBase, DeleteBase
 
 ModelType = TypeVar("ModelType", bound=ResponseBase)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=CreateBase)
@@ -34,6 +34,10 @@ class ReadBase(Generic[ModelType]):
 
     async def get_active(self, db: AsyncClient, *, id: int) -> Optional[ModelType]:
         query = db.table(self.model.table_name).select("*").eq("id", id).eq("is_deleted", False)
+        return await self._execute_single_query(query)
+
+    async def get_active_by_email(self, db: AsyncClient, *, email: str) -> Optional[ModelType]:
+        query = db.table(self.model.table_name).select("*").eq("email", email).eq("is_deleted", False)
         return await self._execute_single_query(query)
 
     async def get_all(self, db: AsyncClient) -> List[ModelType]:

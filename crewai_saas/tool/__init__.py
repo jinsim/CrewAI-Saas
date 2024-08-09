@@ -1,15 +1,15 @@
-from calculator_tools import CalculatorTools
-from scrape_web import ScrapeWebsiteTool
-from search_tools import SearchTools
-from sec_tools import SECTools
-from stock_info import StockInfoTools
-from stock_news import stock_news
+from .calculator_tools import CalculatorTools
+from .scrape_web import scrape_tool
+from .search_tools import SearchTools
+from .sec_tools import SECTools
+from .stock_info import StockInfoTools
+from .stock_news import stock_news
 
 function_map = {
     "calculate": CalculatorTools.calculate,
     "search_news": SearchTools.search_news,
     "search_internet": SearchTools.search_internet,
-    "scrape_web": ScrapeWebsiteTool,
+    "scrape_web": scrape_tool,
     "stock_news": stock_news,
     "stock_price": StockInfoTools.stock_price,
     "income_stmt": StockInfoTools.income_stmt,

@@ -3,7 +3,7 @@ from fastapi import APIRouter
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import llm, llm_provider
-from crewai_saas.schema import Llm, LlmProvider, LlmProviderWithLlms
+from crewai_saas.model import Llm, LlmProvider, LlmProviderWithLlms
 
 router = APIRouter()
 

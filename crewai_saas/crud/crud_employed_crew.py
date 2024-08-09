@@ -1,8 +1,10 @@
+from typing import Optional
+
 from supabase_py_async import AsyncClient
 
 from crewai_saas.crud.base import CRUDBase, ReadBase
-from crewai_saas.schema import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate
-from crewai_saas.schema.auth import UserIn
+from crewai_saas.model import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate
+from crewai_saas.model.auth import UserIn
 
 class CRUDEmployedCrew(CRUDBase[EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate]):
     pass
@@ -33,7 +35,17 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
+    async def get_latest_by_chat_id(self, db: AsyncClient, chat_id: int) -> Optional[Cycle]:
+        data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).order("id",
+                                                                                                     desc=True).limit(
+            1).execute()
+        _, got = data
 
+        # 데이터가 없으면 None을 반환
+        if not got:
+            return None
+
+        return [self.model(**item) for item in got][0]
 
 
 employed_crew = CRUDEmployedCrew(EmployedCrew)

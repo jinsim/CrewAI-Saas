@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from crewai_saas.schema.base import CreateBase, InDBBase, ResponseBase, UpdateBase
+from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
 
 
 # request

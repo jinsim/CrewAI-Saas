@@ -2,8 +2,8 @@ from supabase_py_async import AsyncClient
 from typing import Generic, TypeVar, Any, List, Optional
 
 from crewai_saas.crud.base import CRUDBase, ReadBase
-from crewai_saas.schema import *
-from crewai_saas.schema.auth import UserIn
+from crewai_saas.model import *
+from crewai_saas.model.auth import UserIn
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: UserCreate) -> User:
@@ -14,6 +14,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     async def get_active(self, db: AsyncClient, *, id: int) -> User | None:
         return await super().get_active(db, id=id)
+
+    async def get_active_by_email(self, db: AsyncClient, *, email: str) -> User | None:
+        return await super().get_active_by_email(db, email=email)
 
     async def get_all(self, db: AsyncClient) -> list[User]:
         return await super().get_all(db)

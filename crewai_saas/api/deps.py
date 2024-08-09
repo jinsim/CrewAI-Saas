@@ -9,7 +9,7 @@ from supabase_py_async import AsyncClient, create_client
 from supabase_py_async.lib.client_options import ClientOptions
 
 from crewai_saas.core.config import settings
-from crewai_saas.schema.auth import UserIn
+from crewai_saas.model.auth import UserIn
 
 super_client: AsyncClient | None = None
 
@@ -89,7 +89,7 @@ async def get_db() -> AsyncClient:
         yield client
 
     except Exception as e:
-        logging.error(e, exc_info=True)
+        logging.error(e, exc_info=True, stack_info=True, extra={"client": client})
         raise HTTPException(
             status_code=400, detail="Unknown error occurred"
         )

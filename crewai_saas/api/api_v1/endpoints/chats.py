@@ -3,7 +3,7 @@ from typing import Annotated
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import chat
-from crewai_saas.schema import Chat, ChatCreate
+from crewai_saas.model import Chat, ChatCreate
 
 router = APIRouter()
 
