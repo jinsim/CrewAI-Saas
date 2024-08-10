@@ -1,11 +1,9 @@
 from fastapi import APIRouter, Path, Response
 from starlette.responses import JSONResponse
-from supabase_py_async import AsyncClient
 from typing import Annotated
 
 from crewai_saas import crud
 from crewai_saas.api.deps import CurrentUser, SessionDep
-from crewai_saas.core.exceptions import CustomException
 from crewai_saas.crud import crew, api_key, task
 from crewai_saas.model import Crew, CrewCreate, CrewUpdate
 
