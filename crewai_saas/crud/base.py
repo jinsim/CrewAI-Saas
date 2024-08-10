@@ -53,7 +53,7 @@ class ReadBase(Generic[ModelType]):
         return await self._execute_multi_query(query)
 
     async def get_all_active_by_owner(self, db: AsyncClient, *, user_id: int) -> List[ModelType]:
-        query = db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("is_deleted", False)
+        query = db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("is_deleted", False).order_by("created_at", desc=True)
         return await self._execute_multi_query(query)
 
 
