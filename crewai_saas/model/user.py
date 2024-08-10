@@ -39,7 +39,7 @@ class User(ResponseBase):
     coin: Optional[float] = 0
     is_deleted: Optional[bool] = False
     country_id: Optional[int] = None
-
+    is_new_user: Optional[bool] = False
     table_name: ClassVar[str] = "user"
 
 class UserInDB(InDBBase):
