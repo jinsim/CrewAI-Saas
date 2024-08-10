@@ -109,7 +109,7 @@ async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID o
                            cycle_id: Annotated[int, Path(title="The ID of the Cycle to get")], session: SessionDep) -> CycleWithMessage:
     cycle = await crud.cycle.get(session, id=cycle_id)
     message_dtos = [
-        MessageSimple(**await crud.message.create(session, obj_in=MessageCreate(cycle_id=cycle.id, **message.dict(), chat_id=chat_id)))
+        MessageSimple(**await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id))
         for message in messages
     ]
     return CycleWithMessage(**cycle.dict(), messages=message_dtos)
@@ -119,7 +119,9 @@ async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of 
                          chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                          message_in: MessageRequest, session: SessionDep) -> MessageSimple:
     cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id))
-    return MessageSimple(**await crud.message.create(session, obj_in=MessageCreate(cycle_id=cycle.id, **message_in.dict(), chat_id=chat_id)))
+    message = await crud.message.create(session,obj_in=MessageCreate(cycle_id=cycle.id, **message_in.dict(), chat_id=chat_id))
+
+    return MessageSimple(**message.dict())
 
 
 
