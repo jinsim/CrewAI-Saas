@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from typing import Annotated
 from fastapi import FastAPI, Path, Query, Request, Response
 from datetime import datetime
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas import crud
+from crewai_saas.core.google_auth_utils import GoogleAuthUtils
 from crewai_saas.model import *
 from crewai_saas.service import crewai, crewAiService
 from crewai_saas.tool import function_map
@@ -30,6 +31,14 @@ async def update_employed_crew(employed_crew_id: Annotated[int, Path(title="The 
 @router.get("/by-user-id/{user_id}")
 async def read_employed_crews(user_id: Annotated[int, Path(title="The ID of the User to get")], session: SessionDep) -> list[EmployedCrew]:
     return await crud.employed_crew.get_all_active_by_owner(session, user_id=user_id)
+
+
+@router.get("/by-user")
+async def read_employed_crews_by_user(session: SessionDep
+                              , user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrew]:
+    get_user = await crud.user.get_active_by_email(session, email=user_email)
+    return await crud.employed_crew.get_all_active_by_owner(session, user_id=get_user.id)
+
 
 @router.get("/{employed_crew_id}")
 async def read_employed_crew_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> EmployedCrew | None:
