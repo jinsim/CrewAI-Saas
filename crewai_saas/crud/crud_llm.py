@@ -16,6 +16,5 @@ class ReadLlm(ReadBase[Llm]):
 class ReadLlmProvider(ReadBase[LlmProvider]):
     async def get_all(self, db: AsyncClient) -> list[LlmProvider]:
         return await super().get_all(db)
-
 llm = ReadLlm(Llm)
 llm_provider = ReadLlmProvider(LlmProvider)
