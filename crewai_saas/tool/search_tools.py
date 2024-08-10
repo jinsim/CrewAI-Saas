@@ -9,7 +9,10 @@ class SearchTools():
   @tool("Search the internet")
   def search_internet(query):
     """Useful to search the internet 
-    about a a given topic and return relevant results"""
+    about a a given topic and return relevant results.
+    Don't search for anything that doesn't matter with the query.
+    Stop searching about the JavaScript.
+    """
     top_result_to_return = 4
     url = "https://google.serper.dev/search"
     payload = json.dumps({"q": query})

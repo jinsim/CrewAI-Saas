@@ -28,6 +28,7 @@ class EmployedCrew(ResponseBase):
     user_id: int
     is_favorite: bool
     is_deleted: bool
+    is_owner: bool
 
     table_name: ClassVar[str] = "employed_crew"
 
@@ -36,6 +37,7 @@ class EmployedCrewInDB(InDBBase):
     user_id: int
     is_favorite: bool
     is_deleted: bool
+    is_owner: bool
 
 
 # chat

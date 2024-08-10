@@ -87,12 +87,26 @@ async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the
                       session: SessionDep) -> list[Cycle]:
     return await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
 
-@router.get("/{employed_crew_id}/chats/{chat_id}/cycles/active")
+@router.get("/{employed_crew_id}/chats/{chat_id}/cycles")
 async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                       chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                       session: SessionDep) -> list[CycleWithMessage]:
+    cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
+    cycle_with_messages = []
+    for cycle in cycles:
+        messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
+        message_dtos = [
+            MessageSimple(**message.dict())
+            for message in messages
+        ]
+        cycle_with_messages.append(CycleWithMessage(**cycle.dict(), messages=message_dtos))
+    return cycle_with_messages
+
+@router.get("/{employed_crew_id}/chats/{chat_id}/cycles/finished")
+async def read_finished_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                               chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
+                               session: SessionDep) -> list[CycleWithMessage]:
     cycles = await crud.cycle.get_all_finished_by_chat_id(session, chat_id=chat_id)
-    print(f"cycles: {cycles}")
     cycle_with_messages = []
     for cycle in cycles:
         messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
@@ -113,6 +127,7 @@ async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID o
         for message in messages
     ]
     return CycleWithMessage(**cycle.dict(), messages=message_dtos)
+
 
 @router.post("/{employed_crew_id}/chats/{chat_id}/messages")
 async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
