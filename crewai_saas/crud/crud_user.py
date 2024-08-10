@@ -7,7 +7,15 @@ from crewai_saas.model.auth import UserIn
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: UserCreate) -> User:
-        return await super().create(db, obj_in=obj_in)
+        existing_user = await self.get_active_by_email(db, email=obj_in.email)
+
+        if existing_user:
+            existing_user.is_new_user = False
+            return existing_user
+
+        new_user = await super().create(db, obj_in=obj_in)
+        new_user.is_new_user = True
+        return new_user
 
     async def get(self, db: AsyncClient, *, id: int) -> User | None:
         return await super().get(db, id=id)
