@@ -56,17 +56,19 @@ class ChatCreate(CreateBase):
     employed_crew_id: int
 
 class ChatUpdate(UpdateBase):
-    pass
+    title: str
 
 class Chat(ResponseBase):
     employed_crew_id: int
     is_deleted: bool
+    title: str
 
     table_name: ClassVar[str] = "chat"
 
 class ChatInDB(InDBBase):
     employed_crew_id: int
     is_deleted: bool
+    title: str
 
 
 # message
