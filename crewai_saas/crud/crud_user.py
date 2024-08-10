@@ -73,6 +73,16 @@ class CRUDApiKey(CRUDBase[ApiKey, ApiKeyCreate, ApiKeyUpdate]):
     async def delete(self, db: AsyncClient, *, id: int) -> ApiKey:
         return await super().delete(db, id=id)
 
+    async def get_active_by_user_id_and_llm(self, db: AsyncClient, *, user_id: int, llm_id: int) -> ApiKey | None:
+        provider_id_response = await db.table("llm").select("llm_provider_id").eq("id", llm_id).execute()
+        provider_id = provider_id_response.data[0]["llm_provider_id"]  # provider_id를 추출합니다
+
+        data, count = await db.table(self.model.table_name).select("*").eq("user_id", user_id).eq(
+            "llm_provider_id", provider_id).execute()
+        _, got = data
+        return self.model(**got[0]) if got else None
+
+
 
 user = CRUDUser(User)
 country = ReadCountry(Country)
