@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from crewai_saas.api.api_v1.api import api_router
 from crewai_saas.core.config import settings
 from crewai_saas.core.events import lifespan
+from crewai_saas.core.exceptions import CustomException, unicorn_exception_handler
 
 
 def create_app() -> FastAPI:
@@ -56,3 +57,6 @@ async def add_cors_header(request: Request, call_next):
         response.headers["Access-Control-Allow-Methods"] = "DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
     return response
+
+
+app.add_exception_handler(CustomException, unicorn_exception_handler)
