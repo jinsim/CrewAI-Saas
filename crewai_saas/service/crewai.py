@@ -46,7 +46,7 @@ async def append_event(cycle_id, task_id, event_data):
         else:
             print("Appending message for cycle : %s task : %s event : %s", cycle_id, task_id, event_data)
             # logger.info("Appending event for job %s: %s", job_id, event_data)
-            message_response = await crud.message.create(MessageCreate(content=event_data, task_id=task_id, role="AGENT"))
+            message_response = await crud.message.create(MessageCreate(content=event_data, task_id=task_id, role=MessageRole.ASSISTANT, chat_id=self.chat_id))
             return message_response
     except Exception as e:
         print("Error in append_event", e)
