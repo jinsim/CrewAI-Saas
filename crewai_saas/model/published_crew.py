@@ -5,6 +5,7 @@ from datetime import datetime
 from crewai_saas.core.enum.CrewStatus import CrewStatus
 
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
+from crewai_saas.model.crew import Tool
 
 class PublishedCrewCreate(CreateBase):
     name: str
@@ -13,7 +14,26 @@ class PublishedCrewCreate(CreateBase):
     is_sequential: bool
     input_price: Optional[float] = 0
     output_price: Optional[float] = 0
-    status: PublishedCrewStatus
+    status: CrewStatus
+    use_history: bool
+    usage: int
+    average_token_usage: int
+    updated_at: str
+    is_deleted: bool
+    llm_id: int
+    tags: Optional[List[str]] = None
+    task_ids: Optional[List[int]] = None
+    pre_questions: Optional[List[str]] = None
+    user_id: int
+
+class PublishedCrewUpdate(UpdateBase):
+    name: str
+    description: Optional[str] = None
+    greeting: Optional[str] = None
+    is_sequential: bool
+    input_price: Optional[float] = 0
+    output_price: Optional[float] = 0
+    status: CrewStatus
     use_history: bool
     usage: int
     average_token_usage: int
@@ -33,7 +53,7 @@ class PublishedCrew(ResponseBase):
     is_sequential: bool
     input_price: Optional[float]
     output_price: Optional[float]
-    status: PublishedCrewStatus
+    status: CrewStatus
     use_history: bool
     usage: int
     average_token_usage: int
@@ -55,7 +75,7 @@ class PublishedCrewInDB(InDBBase):
     is_sequential: bool = False
     input_price: Optional[float]
     output_price: Optional[float]
-    status: PublishedCrewStatus
+    status: CrewStatus
     use_history: bool = False
     usage: int = 0
     average_token_usage: int = 0
@@ -69,6 +89,13 @@ class PublishedCrewInDB(InDBBase):
 
 
 class PublishedTaskCreate(CreateBase):
+    agent_id: int
+    crew_id: int
+    name: str
+    description: Optional[str] = None
+    expected_output: Optional[str] = None
+
+class PublishedTaskUpdate(UpdateBase):
     agent_id: int
     crew_id: int
     name: str
@@ -97,6 +124,10 @@ class PublishedTaskInDB(InDBBase):
     is_deleted: bool
 
 class PublishedTaskContextCreate(CreateBase):
+    parent_task_id: int
+    child_task_id: int
+
+class PublishedTaskContextUpdate(UpdateBase):
     parent_task_id: int
     child_task_id: int
 

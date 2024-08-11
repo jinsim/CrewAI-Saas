@@ -31,6 +31,10 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
     async def delete(self, db: AsyncClient, *, id: int) -> Crew:
         return await super().delete(db, id=id)
 
+    async def plus_usage(self, db: AsyncClient, *, id: int, usage: int) -> Crew:
+        data, count = await db.table(self.model.table_name).update({"usage": usage+1}).eq("id", id).execute()
+        _, updated = data
+        return self.model(**updated[0])
 
 class CRUDTask(CRUDBase[Task, TaskCreate, TaskUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: TaskCreate) -> Task:
