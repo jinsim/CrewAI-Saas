@@ -42,7 +42,7 @@ async def read_employed_crews(user_id: Annotated[int, Path(title="The ID of the 
 async def read_employed_crews_by_user(session: SessionDep
                               , user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrew]:
     get_user = await crud.user.get_active_by_email(session, email=user_email)
-    return await crud.employed_crew.get_all_active_by_owner(session, user_id=get_user.id)
+    return await crud.employed_crew.get_all_active_employed_crews_by_owner(session, user_id=get_user.id)
 
 
 @router.get("/{employed_crew_id}")
