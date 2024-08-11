@@ -28,6 +28,7 @@ class EmployedCrew(ResponseBase):
     user_id: int
     is_favorite: bool
     is_deleted: bool
+    is_owner: bool
 
     table_name: ClassVar[str] = "employed_crew"
 
@@ -36,6 +37,7 @@ class EmployedCrewInDB(InDBBase):
     user_id: int
     is_favorite: bool
     is_deleted: bool
+    is_owner: bool
 
 
 # chat
@@ -54,17 +56,19 @@ class ChatCreate(CreateBase):
     employed_crew_id: int
 
 class ChatUpdate(UpdateBase):
-    pass
+    title: str
 
 class Chat(ResponseBase):
     employed_crew_id: int
     is_deleted: bool
+    title: str
 
     table_name: ClassVar[str] = "chat"
 
 class ChatInDB(InDBBase):
     employed_crew_id: int
     is_deleted: bool
+    title: str
 
 
 # message
@@ -164,6 +168,7 @@ class MessageSimple(InDBBase):
 
 class CycleCreate(CreateBase):
     chat_id: int
+    execution_id: Optional[str] = None
     class Config:
         use_enum_values = True  # Enum 값을 문자열로 자동 변환
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
@@ -181,12 +186,14 @@ class CycleUpdate(UpdateBase):
 
 class CycleUpdateStatus(UpdateBase):
     status: CycleStatus
+    execution_id: Optional[str] = None
     class Config:
         use_enum_values = True  # Enum 값을 문자열로 자동 변환
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 class Cycle(ResponseBase):
     status: CycleStatus
+    execution_id: Optional[str] = None
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]
@@ -199,6 +206,7 @@ class Cycle(ResponseBase):
 
 class CycleInDB(InDBBase):
     status: CycleStatus
+    execution_id: Optional[str] = None
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]

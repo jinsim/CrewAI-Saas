@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 
 from supabase_py_async import AsyncClient
 
@@ -6,11 +6,16 @@ from crewai_saas.core.enum import CycleStatus
 from crewai_saas.crud.base import CRUDBase, ReadBase
 from crewai_saas.model import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate
 from crewai_saas.model.auth import UserIn
+from crewai_saas.core.enum.CycleStatus import CycleStatus
 
 class CRUDEmployedCrew(CRUDBase[EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate]):
     async def get_all_active_employed_crews_by_owner(self, db: AsyncClient, *, user_id: int) -> List[EmployedCrew]:
         query = db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("is_deleted", False).order("created_at", desc=True)
         return await self._execute_multi_query(query)
+    async def create_owned(self, db: AsyncClient, *, crew_id:int, user_id:int) -> EmployedCrew:
+        data, count = await db.table(self.model.table_name).insert({"crew_id": crew_id, "user_id": user_id, "is_owner": True}).execute()
+        _, got = data
+        return self.model(**got[0])
 
 class CRUDChat(CRUDBase[Chat, ChatCreate, ChatUpdate]):
     # 사이클이 생길 때마다 updated_at을 갱신한다.(최신순으로 정렬)

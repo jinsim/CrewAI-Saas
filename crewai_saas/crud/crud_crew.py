@@ -5,8 +5,6 @@ from crewai_saas.crud.base import CRUDBase
 from crewai_saas.model import Crew, Task, Agent, Tool, TaskContext, CrewCreate, CrewUpdate, TaskCreate, TaskUpdate, AgentCreate, AgentUpdate, TaskContextCreate, TaskContextUpdate, ToolCreate, ToolUpdate
 
 class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
-    async def create(self, db: AsyncClient, *, obj_in: CrewCreate) -> Crew:
-        return await super().create(db, obj_in=obj_in)
 
     async def get(self, db: AsyncClient, *, id: int) -> Crew | None:
         return await super().get(db, id=id)
