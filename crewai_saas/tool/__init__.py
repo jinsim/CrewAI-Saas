@@ -2,7 +2,7 @@ from .calculator_tools import CalculatorTools
 from .scrape_web import scrape_tool
 from .search_tools import SearchTools
 from .sec_tools import SECTools
-from .stock_info import StockInfoTools, stock_price
+from .stock_info import StockInfoTools
 from .stock_news import stock_news
 
 function_map = {
@@ -11,7 +11,7 @@ function_map = {
     "search_internet": SearchTools.search_internet,
     "scrape_web": scrape_tool,
     "stock_news": stock_news,
-    "stock_price": stock_price,
+    "stock_price": StockInfoTools.stock_price,
     "income_stmt": StockInfoTools.income_stmt,
     "balance_sheet": StockInfoTools.balance_sheet,
     "insider_transactions": StockInfoTools.insider_transactions,
