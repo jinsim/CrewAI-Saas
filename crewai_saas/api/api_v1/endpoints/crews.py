@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Path, Response
+from fastapi import APIRouter, Path, Response, Request
 from starlette.responses import JSONResponse
 from typing import Annotated
 
 from crewai_saas import crud
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.crud import crew, employed_crew, api_key, task
+from crewai_saas.service import crewai, crewAiService
 
 from crewai_saas.model import Crew, CrewCreate, CrewUpdate
 
@@ -85,6 +86,11 @@ async def verify_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
         status_code=200,
         content={"message": "Successfully Verified Crew"},
     )
+
+@router.get("/{crew_id}/info", description="크루 하위의 모든 정보를 반환")
+async def get_char_info(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
+                      req: Request, session: SessionDep) -> Response:
+    return await crewai.make_response(session=session, crew_id=crew_id)
 
 @router.delete("/{crew_id}")
 async def delete_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],

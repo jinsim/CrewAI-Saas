@@ -66,6 +66,7 @@ class CrewAiStartService:
         )
 
     async def start(self, employed_crew_id, chat_id):
+        logger.info(f"Starting Crew AI Service for employed_crew_id: {employed_crew_id} chat_id: {chat_id}")
         # Fetch the employed_crew
         employed_crew = await crud.employed_crew.get_active(self.session, id=employed_crew_id)
         if not employed_crew:
@@ -137,11 +138,10 @@ class CrewAiStartService:
 
         # Helper function to create Task instances
         async def get_task(task):
-            # Get context tasks IDs
-            context_task_ids = await crud.task_context.get_child_task_id_all_by_task_id(self.session, task.id)
             # Ensure context tasks are resolved before using them
-            context_tasks = [task_dict.get(task_id) for task_id in context_task_ids]
-
+            context_tasks = []
+            if task.context_task_ids:
+                context_tasks = [task_dict.get(task_id) for task_id in task.context_task_ids]
             return Task(
                 description=task.description+conversation,
                 expected_output=task.expected_output,
@@ -159,6 +159,8 @@ class CrewAiStartService:
                 task_dict[task_id] = await get_task(task)
 
         # Create the Crew instance
+        logger.info(f"agent_dict : {agent_dict}")
+        logger.info(f"task_dict : {task_dict}")
         crew_instance = Crew(
             agents=list(agent_dict.values()),  # Convert dict values to list
             tasks=list(task_dict.values()),  # Convert dict values to list

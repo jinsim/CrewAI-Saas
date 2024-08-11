@@ -14,14 +14,8 @@ async def create_task(task_in: TaskCreate, session: SessionDep) -> Task:
 
 @router.get("/by-crew-id/{crew_id}")
 async def read_tasks_by_crew_id(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                          session: SessionDep) -> list[TaskWithContext]:
-    task_list = await task.get_all_active_by_crew_id(session, crew_id)
-    ret = []
-    for it in task_list:
-        task_contexts = await task_context.get_child_task_id_all_by_task_id(session, task_id=it.id)
-        ret.append(TaskWithContext(**it.dict(), context_task_ids=task_contexts))
-
-    return ret
+                          session: SessionDep) -> list[Task]:
+    return await task.get_all_active_by_crew_id(session, crew_id)
 
 @router.patch("/{task_id}")
 async def update_task(task_id: Annotated[int, Path(title="The ID of the Task to get")],

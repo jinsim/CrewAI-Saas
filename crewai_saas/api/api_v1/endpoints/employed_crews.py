@@ -59,12 +59,6 @@ async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The 
     return await crud.employed_crew.soft_delete(session, id=employed_crew_id)
 
 
-# Run Crew 예제
-@router.get("/{employed_crew_id}/info", description="고용된 크루 하위의 모든 정보를 반환")
-async def get_char_info(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                      req: Request, session: SessionDep) -> Response:
-    return await crewai.make_response(session=session, employed_crew_id=employed_crew_id)
-
 @router.post("/{employed_crew_id}/chats/start")
 async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                          messages_in: list[MessageRequest], session: SessionDep) -> ChatWithCycle:
