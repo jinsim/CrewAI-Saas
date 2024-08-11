@@ -70,6 +70,15 @@ class CRUDApiKey(CRUDBase[ApiKey, ApiKeyCreate, ApiKeyUpdate]):
     async def get_all_active_by_owner(self, db: AsyncClient, user_id: int) -> list[ApiKey]:
         return await super().get_all_active_by_owner(db, user_id=user_id)
 
+    async def get_active_by_llm_provider_id(self, db: AsyncClient, *, llm_provider_id: int) -> ApiKey | None:
+        return await db.table(self.model.table_name).select("*").eq("llm_provider_id", llm_provider_id).execute()
+        _, got = data
+        if not got:
+            return None
+
+        return [self.model(**item) for item in got][0]
+
+
     async def delete(self, db: AsyncClient, *, id: int) -> ApiKey:
         return await super().delete(db, id=id)
 
