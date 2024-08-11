@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from supabase_py_async import AsyncClient
 
@@ -8,7 +8,9 @@ from crewai_saas.model import EmployedCrew, EmployedCrewCreate, EmployedCrewUpda
 from crewai_saas.model.auth import UserIn
 
 class CRUDEmployedCrew(CRUDBase[EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate]):
-    pass
+    async def get_all_active_employed_crews_by_owner(self, db: AsyncClient, *, user_id: int) -> List[EmployedCrew]:
+        query = db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("is_deleted", False).order("created_at", desc=True)
+        return await self._execute_multi_query(query)
 
 class CRUDChat(CRUDBase[Chat, ChatCreate, ChatUpdate]):
     # 사이클이 생길 때마다 updated_at을 갱신한다.(최신순으로 정렬)
