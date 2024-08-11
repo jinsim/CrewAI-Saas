@@ -1,23 +1,19 @@
 from fastapi import APIRouter
 from typing import Annotated
-from fastapi import FastAPI, Path, Query,  Depends
-from crewai_saas.core.google_auth_utils import GoogleAuthUtils
-from datetime import datetime
+from fastapi import  Path, Depends
 
-from crewai_saas.api.deps import CurrentUser, SessionDep
+from crewai_saas.core.google_auth_utils import GoogleAuthUtils
+
+from crewai_saas.api.deps import SessionDep
 from crewai_saas.crud import user, country, api_key
 from crewai_saas.model import User, UserCreate, UserUpdate, Country, ApiKey, ApiKeyCreate, ApiKeyUpdate
 
 router = APIRouter()
 
-# Distinct Route Paths. Country 을 앞에 둔다.
-# 모든 Country 을 가져오는 API
-# 앞에 /users 붙일 필요는 없지만, 따로 빼기 귀찮아서 둠. 나중에 수정 필요.
 @router.get("/countries")
 async def read_countries(session: SessionDep) -> list[Country]:
     return await country.get_all(session)
 
-#토큰에서 이메일 정보를 가져와 사용자의 정보를 반환한다.
 @router.get("/user_info")
 async def read_user_by_token(session: SessionDep,
                          user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> User | None:
@@ -40,13 +36,16 @@ async def create_user(user_in: UserCreate, session: SessionDep) -> User:
 
 @router.put("/{user_id}")
 async def update_user(user_id: Annotated[int, Path(title="The ID of the User to get")],
-                      user_in: UserUpdate, session: SessionDep) -> User:
+                      user_in: UserUpdate, session: SessionDep,
+                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> User:
     return await user.update(session, obj_in=user_in, id=user_id)
+
 
 @router.delete("/{user_id}")
 async def delete_user(user_id: Annotated[int, Path(title="The ID of the User to get")],
                       session: SessionDep) -> User:
     return await user.soft_delete(session, id=user_id)
+
 
 @router.post("/{user_id}/api_keys")
 async def create_api_key(user_id: Annotated[int, Path(title="The ID of the User to get")],
