@@ -2,6 +2,7 @@ from typing import Optional
 
 from supabase_py_async import AsyncClient
 
+from crewai_saas.core.enum import CycleStatus
 from crewai_saas.crud.base import CRUDBase, ReadBase
 from crewai_saas.model import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate
 from crewai_saas.model.auth import UserIn
@@ -16,7 +17,20 @@ class CRUDChat(CRUDBase[Chat, ChatCreate, ChatUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
+    async def update_time(self, db: AsyncClient, *, chat_id: int) -> Chat:
+        data, count = await db.table(self.model.table_name).update({"updated_at": "now()"}).eq("id", chat_id).execute()
+        _, got = data
+        return self.model(**got[0])
+
 class CRUDMessage(CRUDBase[Message, MessageCreate, MessageUpdate]):
+
+    async def create(self, db: AsyncClient, *, obj_in: MessageCreate) -> Message:
+        data, count = await db.table(self.model.table_name).insert(obj_in.dict()).execute()
+        _, got = data
+        chat_data = await chat.update_time(db, chat_id=obj_in.chat_id)
+        await db.table("employed_crew").update({"updated_at": "now()"}).eq("id", chat_data.employed_crew_id).execute()
+        return self.model(**got[0])
+
     # 사이클이 생길 때마다 updated_at을 갱신한다.(최신순으로 정렬)
     async def get_all_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Message]:
         data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).order("id", desc=True).execute()
@@ -24,7 +38,7 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageUpdate]):
         return [self.model(**item) for item in got]
 
     async def get_all_by_cycle_id(self, db: AsyncClient, *, cycle_id: int) -> list[Message]:
-        data, count = await db.table(self.model.table_name).select("*").eq("cycle_id", cycle_id).order("id", desc=True).execute()
+        data, count = await db.table(self.model.table_name).select("*").eq("cycle_id", cycle_id).order("id", desc=False).execute()
         _, got = data
         return [self.model(**item) for item in got]
 
@@ -32,6 +46,11 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
 
     async def get_all_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
         data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).order("id", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
+    async def get_all_finished_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
+        data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).eq("status", CycleStatus.FINISHED.value).order("id", desc=True).execute()
         _, got = data
         return [self.model(**item) for item in got]
 

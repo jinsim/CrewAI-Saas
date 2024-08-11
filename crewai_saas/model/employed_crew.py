@@ -1,7 +1,7 @@
 from typing import ClassVar
 from typing import Optional
-from crewai_saas.core.enum.CycleStatus import CycleStatus
-from crewai_saas.core.enum.MessageRole import MessageRole
+from crewai_saas.core.enum import CycleStatus, MessageRole
+from pydantic import BaseModel
 
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
 
@@ -87,13 +87,14 @@ class ChatInDB(InDBBase):
 #     constraint message_task_id_fkey foreign key (task_id) references task (id)
 #   ) tablespace pg_default;
 
+class MessageRequest(BaseModel):
+    content: str
+    role: MessageRole
+
 class MessageCreate(CreateBase):
-    cost: Optional[float] = 0
-    input_token: Optional[int] = None
-    output_token: Optional[int] = None
     content: str
     task_id: Optional[int] = None
-    cycle_id: Optional[int] = None
+    cycle_id: int
     role: MessageRole
     chat_id: int
     class Config:
@@ -101,6 +102,9 @@ class MessageCreate(CreateBase):
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 class MessageUpdate(UpdateBase):
+    cost: Optional[float] = 0
+    input_token: Optional[int] = None
+    output_token: Optional[int] = None
     class Config:
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
@@ -111,7 +115,7 @@ class Message(ResponseBase):
     output_token: Optional[int]
     content: str
     task_id: Optional[int]
-    cycle_id: Optional[int]
+    cycle_id: int
     role: MessageRole
     chat_id: int
 
@@ -134,6 +138,13 @@ class MessageInDB(InDBBase):
         use_enum_values = True  # Enum 값을 문자열로 자동 변환
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
+class MessageSimple(InDBBase):
+    content: str
+    role: MessageRole
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
+
 
 # cycle
 # create table
@@ -152,10 +163,6 @@ class MessageInDB(InDBBase):
 #   ) tablespace pg_default;
 
 class CycleCreate(CreateBase):
-    status: CycleStatus
-    cost: Optional[float] = 0
-    price: Optional[float] = 0
-    total_token: Optional[int] = 0
     chat_id: int
     class Config:
         use_enum_values = True  # Enum 값을 문자열로 자동 변환
@@ -164,16 +171,26 @@ class CycleCreate(CreateBase):
 
 
 class CycleUpdate(UpdateBase):
+    status: CycleStatus
+    cost: Optional[float] = None
+    price: Optional[float] = None
+    total_token: Optional[int] = None
     class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
+class CycleUpdateStatus(UpdateBase):
+    status: CycleStatus
+    class Config:
+        use_enum_values = True  # Enum 값을 문자열로 자동 변환
+        arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 class Cycle(ResponseBase):
     status: CycleStatus
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]
-    chat_id: Optional[int] = None
+    chat_id: Optional[int]
 
     table_name: ClassVar[str] = "cycle"
     class Config:
@@ -182,10 +199,16 @@ class Cycle(ResponseBase):
 
 class CycleInDB(InDBBase):
     status: CycleStatus
-    cost: float
-    price: float
-    total_token: int
-    chat_id: int
+    cost: Optional[float]
+    price: Optional[float]
+    total_token: Optional[int]
+    chat_id: Optional[int]
     class Config:
         use_enum_values = True  # Enum 값을 문자열로 자동 변환
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
+
+class CycleWithMessage(Cycle):
+    messages: list[MessageSimple]
+
+class ChatWithAll(Chat):
+    cycle: CycleWithMessage

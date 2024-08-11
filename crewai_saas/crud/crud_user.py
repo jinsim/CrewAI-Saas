@@ -7,7 +7,15 @@ from crewai_saas.model.auth import UserIn
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: UserCreate) -> User:
-        return await super().create(db, obj_in=obj_in)
+        existing_user = await self.get_active_by_email(db, email=obj_in.email)
+
+        if existing_user:
+            existing_user.is_new_user = False
+            return existing_user
+
+        new_user = await super().create(db, obj_in=obj_in)
+        new_user.is_new_user = True
+        return new_user
 
     async def get(self, db: AsyncClient, *, id: int) -> User | None:
         return await super().get(db, id=id)
@@ -61,6 +69,15 @@ class CRUDApiKey(CRUDBase[ApiKey, ApiKeyCreate, ApiKeyUpdate]):
 
     async def get_all_active_by_owner(self, db: AsyncClient, user_id: int) -> list[ApiKey]:
         return await super().get_all_active_by_owner(db, user_id=user_id)
+
+    async def get_active_by_llm_provider_id(self, db: AsyncClient, *, llm_provider_id: int) -> ApiKey | None:
+        return await db.table(self.model.table_name).select("*").eq("llm_provider_id", llm_provider_id).execute()
+        _, got = data
+        if not got:
+            return None
+
+        return [self.model(**item) for item in got][0]
+
 
     async def delete(self, db: AsyncClient, *, id: int) -> ApiKey:
         return await super().delete(db, id=id)
