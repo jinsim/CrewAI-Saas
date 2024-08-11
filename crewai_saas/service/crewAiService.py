@@ -114,15 +114,14 @@ class CrewAiStartService:
                 tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
                 tools = [function_map[tool.key] for tool in tools_from_db]
 
-            data = {
-                "role": agent.role,
-                "goal": agent.goal,
-                "backstory": agent.backstory,
-                "tools": tools,
-                "verbose": True,
-                "llm": self.llm,
-            }
-            return Agent(**data)
+            return Agent(
+                role=dedent(agent.role),
+                goal=dedent(agent.goal),
+                backstory=dedent(agent.backstory),
+                tools=tools,
+                verbose=True,
+                llm=self.llm
+            )
 
         # Create a dictionary to hold Agent instances
         agent_dict = {agent.id: await get_agent(agent) for agent in agents}
@@ -143,8 +142,8 @@ class CrewAiStartService:
             if task.context_task_ids:
                 context_tasks = [task_dict.get(task_id) for task_id in task.context_task_ids]
             return Task(
-                description=task.description+conversation,
-                expected_output=task.expected_output,
+                description=dedent(task.description+conversation),
+                expected_output=dedent(task.expected_output),
                 agent=agent_dict[task.agent_id],
                 context=context_tasks,
                 callback=lambda task_output: asyncio.run_coroutine_threadsafe(
