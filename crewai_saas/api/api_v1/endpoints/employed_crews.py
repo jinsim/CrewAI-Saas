@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from typing import Annotated
 from fastapi import FastAPI, Path, Query, Request, Response
 from datetime import datetime
 
+from starlette.responses import JSONResponse
+
+from crewai_saas.api.api_v1.endpoints.users import validate
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas import crud
 from crewai_saas.core.google_auth_utils import GoogleAuthUtils
@@ -20,7 +23,10 @@ async def test(session: SessionDep) -> Response:
     return Response(content="Success")
 
 @router.post("/")
-async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep) -> EmployedCrewWithCrew:
+async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrewWithCrew:
+    validation_result = await validate(session, EmployedCrewCreate.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     crew = await crud.crew.get_active(session, id=employed_crew_in.crew_id)
     if crew.status != CrewStatus.PUBLIC:
         raise Exception("Crew is not published")
@@ -30,11 +36,21 @@ async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: Se
 
 @router.put("/{employed_crew_id}")
 async def update_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                               employed_crew_in: EmployedCrewUpdate, session: SessionDep) -> EmployedCrew:
+                               employed_crew_in: EmployedCrewUpdate, session: SessionDep,
+                               user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrew:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crud.employed_crew.update(session, obj_in=employed_crew_in, id=employed_crew_id)
 
+
+
 @router.get("/by-user-id/{user_id}")
-async def read_employed_crews(user_id: Annotated[int, Path(title="The ID of the User to get")], session: SessionDep) -> list[EmployedCrew]:
+async def read_employed_crews(user_id: Annotated[int, Path(title="The ID of the User to get")], session: SessionDep,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrew]:
+    validation_result = await validate(session, user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crud.employed_crew.get_all_active_by_owner(session, user_id=user_id)
 
 
@@ -55,13 +71,23 @@ async def read_employed_crew_by_id(employed_crew_id: Annotated[int, Path(title="
 
 @router.delete("/{employed_crew_id}")
 async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                      session: SessionDep) -> EmployedCrew:
+                      session: SessionDep,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrew:
+
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
+
     return await crud.employed_crew.soft_delete(session, id=employed_crew_id)
 
 
 @router.post("/{employed_crew_id}/chats/start")
 async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                         messages_in: list[MessageRequest], session: SessionDep) -> ChatWithCycle:
+                         messages_in: list[MessageRequest], session: SessionDep, user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> ChatWithCycle:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     chat = await crud.chat.create(session, obj_in=ChatCreate(employed_crew_id=employed_crew_id))
     cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat.id))
     message_dtos = []
@@ -78,12 +104,22 @@ async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(t
 
 
 @router.get("/{employed_crew_id}/chats")
-async def read_chats(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> list[Chat]:
+async def read_chats(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep, user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Chat]:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crud.chat.get_all_active_by_employed_crew_id(session, employed_crew_id=employed_crew_id)
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/finished", description="채팅방 하위 모든 정보 (finished 된 사이클만)")
 async def read_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                    session: SessionDep) -> ChatWithCycleList | None:
+                    employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                    session: SessionDep,
+                    user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> ChatWithCycleList | None:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     chat = await crud.chat.get_active(session, id=chat_id)
     cycles = await crud.cycle.get_all_finished_by_chat_id(session, chat_id=chat_id)
     cycle_with_messages = []
@@ -99,7 +135,13 @@ async def read_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to ge
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/info", description="채팅방 하위의 모든 정보 (모든 사이클)")
 async def read_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                    session: SessionDep) -> ChatWithCycleList | None:
+                    employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                    session: SessionDep,
+                    user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> ChatWithCycleList | None:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     chat = await crud.chat.get_active(session, id=chat_id)
     cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
     cycle_with_messages = []
@@ -116,20 +158,36 @@ async def read_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to ge
 
 @router.delete("/{employed_crew_id}/chats/{chat_id}")
 async def delete_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                      session: SessionDep) -> Chat:
+                      employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                      session: SessionDep,
+                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Chat:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crud.chat.soft_delete(session, id=chat_id)
 
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles")
 async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                       chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                      session: SessionDep) -> list[Cycle]:
+                      session: SessionDep
+                    ,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Cycle]:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles")
 async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                       chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                      session: SessionDep) -> list[CycleWithMessage]:
+                      session: SessionDep,
+                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[CycleWithMessage]:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
     cycle_with_messages = []
     for cycle in cycles:
@@ -144,7 +202,12 @@ async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles/finished")
 async def read_finished_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                                chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                               session: SessionDep) -> list[CycleWithMessage]:
+                               session: SessionDep,
+                               user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[CycleWithMessage]:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     cycles = await crud.cycle.get_all_finished_by_chat_id(session, chat_id=chat_id)
     cycle_with_messages = []
     for cycle in cycles:
@@ -159,11 +222,16 @@ async def read_finished_cycles(employed_crew_id: Annotated[int, Path(title="The 
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles/{cycle_id}")
 async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                            chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                           cycle_id: Annotated[int, Path(title="The ID of the Cycle to get")], session: SessionDep) -> CycleWithMessage:
+                           cycle_id: Annotated[int, Path(title="The ID of the Cycle to get")], session: SessionDep,
+                           user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> CycleWithMessage:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     cycle = await crud.cycle.get(session, id=cycle_id)
+    messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
     message_dtos = [
-        MessageSimple(**await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id))
-        for message in messages
+        MessageSimple(**message.dict()) for message in messages
     ]
     return CycleWithMessage(**cycle.dict(), messages=message_dtos)
 
@@ -171,7 +239,12 @@ async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID o
 @router.post("/{employed_crew_id}/chats/{chat_id}/messages")
 async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                          chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                         message_in: MessageRequest, session: SessionDep) -> MessageSimple:
+                         message_in: MessageRequest, session: SessionDep,
+                         user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> MessageSimple:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id))
     message = await crud.message.create(session,obj_in=MessageCreate(cycle_id=cycle.id, **message_in.dict(), chat_id=chat_id))
 
@@ -181,12 +254,21 @@ async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of 
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/messages")
 async def read_messages(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                        chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep) -> list[Message]:
+                        chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Message]:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crud.message.get_all_by_chat_id(session, chat_id=chat_id)
 
 @router.post("/{employed_crew_id}/chats/{chat_id}/kick-off")
 async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                     chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                     session: SessionDep) -> Response:
+                     session: SessionDep,
+                        user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Response:
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crewAiService.CrewAiStartService(session).start(employed_crew_id=employed_crew_id, chat_id=chat_id)
 
