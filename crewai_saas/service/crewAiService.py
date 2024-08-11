@@ -35,17 +35,17 @@ class CrewAiStartService:
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    async def append_message(self, task_id, task_mame, task_output): #특정 작업(task_id)에 메시지를 추가
-        logger.info("Appending message for cycle: %s task: %s task_output: %s", self.cycle_id, task_mame, task_output)
+    async def append_message(self, task_id, task_name, task_output, role): #특정 작업(task_id)에 메시지를 추가
+        logger.info("Appending message for cycle: %s task: %s task_output: %s", self.cycle_id, task_name, task_output)
 
         message_response = await crud.message.create(
             self.session,
-            obj_in=MessageCreate(content=str(task_output), task_id=task_id, role=MessageRole.ASSISTANT, chat_id=self.chat_id, cycle_id=self.cycle_id)
+            obj_in=MessageCreate(content=task_name + " : " + str(task_output), task_id=task_id, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id)
         )
 
     def create_callback(self, task_id, task_name, task_output):
         async def async_callback():
-            await self.append_message(task_id, task_name, task_output)
+            await self.append_message(task_id, task_name, task_output, role=MessageRole.ASSISTANT)
 
         return async_callback
 
@@ -165,9 +165,10 @@ class CrewAiStartService:
             verbose=True,
         )
 
-        # result = crew_instance.kickoff()
+        result = crew_instance.kickoff()
         metrics = crew_instance.usage_metrics
         logger.info(f"metric : {metrics}")
-        await self.append_message(None, "metrics: " + str(metrics))
-        await self.append_message(None, "Crew AI Service Complete")
+        await crud.cycle.update_status(self.session, cycle_id=new_cycle.id, status=CycleStatus.FINISHED)
+        await self.append_message(None, "system", "metrics: " + str(metrics), role=MessageRole.SYSTEM)
+        await self.append_message(None,  "system", "Crew AI Service Complete", role=MessageRole.SYSTEM)
         return result
