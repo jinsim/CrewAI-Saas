@@ -222,5 +222,8 @@ class CycleInDB(InDBBase):
 class CycleWithMessage(Cycle):
     messages: list[MessageSimple]
 
-class ChatWithAll(Chat):
+class ChatWithCycle(Chat):
     cycle: CycleWithMessage
+
+class ChatWithCycleList(Chat):
+    cycles: list[CycleWithMessage]

@@ -1,7 +1,8 @@
 from .auth import Token
 from .employed_crew import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, EmployedCrewInDB, Chat, ChatCreate, \
     ChatUpdate, ChatInDB, Cycle, CycleCreate, CycleUpdate, CycleInDB, Message, MessageCreate, MessageUpdate, MessageInDB, \
-    MessageRequest, CycleWithMessage, MessageSimple, ChatWithAll, CycleUpdateStatus, EmployedCrewWithCrew
+    MessageRequest, CycleWithMessage, MessageSimple, ChatWithCycle, CycleUpdateStatus, EmployedCrewWithCrew, ChatWithCycleList
+
 from .llm import Llm, LlmInDB, LlmProvider, LlmProviderInDB, LlmProviderWithLlms
 from .test_item import TestItem, TestItemCreate, TestItemUpdate, TestItemInDB
 from .user import User, UserCreate, UserUpdate, UserInDB, Country, CountryInDB, ApiKey, ApiKeyCreate, ApiKeyUpdate, \
