@@ -1,5 +1,6 @@
 from supabase_py_async import AsyncClient
 
+from crewai_saas.core.enum import CrewStatus
 from crewai_saas.crud.base import CRUDBase
 from crewai_saas.model import Crew, Task, Agent, Tool, TaskContext, CrewCreate, CrewUpdate, TaskCreate, TaskUpdate, AgentCreate, AgentUpdate, TaskContextCreate, TaskContextUpdate, ToolCreate, ToolUpdate
 
@@ -18,6 +19,13 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
 
     async def get_all_active(self, db: AsyncClient) -> list[Crew]:
         return await super().get_all_active(db)
+
+    async def get_all_active_published(self, db: AsyncClient) -> list[Crew]:
+        data, count = await db.table(self.model.table_name).select("*").eq("status", CrewStatus.PUBLIC).eq("is_deleted",
+                                                                                                  False).order("updated_at", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
 
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Crew]:
         return await super().get_multi_by_owner(db, user_id=user_id)

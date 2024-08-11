@@ -22,6 +22,10 @@ async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
 async def read_crews(session: SessionDep) -> list[Crew]:
     return await crew.get_all_active(session)
 
+@router.get("/public")
+async def read_published_crews(session: SessionDep) -> list[Crew]:
+    return await crew.get_all_active_published(session)
+
 @router.get("/{crew_id}")
 async def read_crew_by_id(crew_id: Annotated[int, Path(title="The ID of the Crew to get")], session: SessionDep) -> Crew | None:
     return await crew.get_active(session, id=crew_id)
