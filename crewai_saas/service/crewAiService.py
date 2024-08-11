@@ -49,23 +49,9 @@ class CrewAiStartService:
 
         return async_callback
 
-
-    async def get_agent(self, agent):
-        tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
-        tools = [function_map[tool.key] for tool in tools_from_db]
-        if not tools:
-            raise ValueError("Tools list is invalid")
-
-        return Agent(
-            role=agent.role,
-            goal=agent.goal,
-            backstory=agent.backstory,
-            tools=tools,
-            verbose=True,
-            llm=self.llm
-        )
-
-    async def start(self, employed_crew_id, chat_id):
+    async def start(self, employed_crew_id, chat_id, cycle_id):
+        self.cycle_id = cycle_id
+        self.chat_id = chat_id
         logger.info(f"Starting Crew AI Service for employed_crew_id: {employed_crew_id} chat_id: {chat_id}")
         # Fetch the employed_crew
         employed_crew = await crud.employed_crew.get_active(self.session, id=employed_crew_id)
@@ -93,10 +79,6 @@ class CrewAiStartService:
             logger.error(f"Agents not found for crew_id: {crew.id}")
             raise Exception("Agents not found.")
 
-        new_cycle = await crud.cycle.create(self.session, obj_in=CycleCreate(chat_id=chat_id))
-        self.cycle_id = new_cycle.id
-        self.chat_id = chat_id
-
         conversation = "\n\nConversation History:\n"
         cycles = await crud.cycle.get_all_finished_by_chat_id(self.session, chat_id=chat_id)
         for cycle in cycles:
@@ -120,7 +102,8 @@ class CrewAiStartService:
                 backstory=dedent(agent.backstory),
                 tools=tools,
                 verbose=True,
-                llm=self.llm
+                llm=self.llm,
+                max_iter=10
             )
 
         # Create a dictionary to hold Agent instances
@@ -169,7 +152,6 @@ class CrewAiStartService:
         result = crew_instance.kickoff()
         metrics = crew_instance.usage_metrics
         logger.info(f"metric : {metrics}")
-        await crud.cycle.update_status(self.session, cycle_id=new_cycle.id, status=CycleStatus.FINISHED)
-        await self.append_message(None, "system", "metrics: " + str(metrics), role=MessageRole.SYSTEM)
-        await self.append_message(None,  "system", "Crew AI Service Complete", role=MessageRole.SYSTEM)
+        if result:
+            await self.append_message(None, "system", "metrics: " + str(metrics), role=MessageRole.SYSTEM)
         return result

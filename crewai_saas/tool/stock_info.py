@@ -1,7 +1,6 @@
 from crewai_tools import tool
 import yfinance as yf
 
-<<<<<<< HEAD
 class StockInfoTools:
 
     @tool("Stock Price")
@@ -23,18 +22,6 @@ class StockInfoTools:
             for index, row in history.iterrows()
         )
         return result
-=======
-class StockInfoTools():
->>>>>>> 157395e6844faac484ca0edd45b552e11e424459
-
-    @tool("Stock Price")
-    def stock_price(ticker):
-        """
-        Useful to get stock price data.
-        The input to this tool should be a ticker, for example AAPL, MSFT.
-        """
-        ticker = yf.Ticker(ticker)
-        return ticker.history(period="1mo")
 
     @tool("Income Statement")
     def income_stmt(ticker: str) -> str:
