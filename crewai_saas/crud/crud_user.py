@@ -1,9 +1,8 @@
+from fastapi import HTTPException
 from supabase_py_async import AsyncClient
-from typing import Generic, TypeVar, Any, List, Optional
 
 from crewai_saas.crud.base import CRUDBase, ReadBase
 from crewai_saas.model import *
-from crewai_saas.model.auth import UserIn
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: UserCreate) -> User:
@@ -35,23 +34,17 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[User]:
         return await super().get_multi_by_owner(db, user_id=user_id)
 
-    async def update(self, db: AsyncClient, *, obj_in: UserUpdate, id: int, email: str) -> User:
-        get_user = await self.get_active(db, id=id)
-        if not get_user:
-            raise ValueError("User not found.")
-
-        if get_user.email != email:
-            raise ValueError("Email does not match.")
-
-        # email 유일하도록 설정
-        existing_user = await self.get_active_by_email(db, email=obj_in.email)
-        if existing_user and existing_user.id != id:
-            raise ValueError("User with this email already exists.")
-
-        return await super().update(db, obj_in=obj_in, id=id)
-
     async def delete(self, db: AsyncClient, *, id: int) -> User:
         return await super().delete(db, id=id)
+
+    async def validate_user(self, db: AsyncClient, user_id: int, user_email: str) -> User:
+        get_user = await super().get_active(db, id=user_id)
+        if not get_user:
+            raise HTTPException(status_code=404, detail="User not found.")
+        if get_user.email != user_email:
+            raise HTTPException(status_code=403, detail="User ID does not match the token information.")
+        return get_user
+
 
 class ReadCountry(ReadBase[Country]):
     async def get(self, db: AsyncClient, *, id: int) -> Country | None:
