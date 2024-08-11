@@ -5,8 +5,6 @@ from crewai_saas.crud.base import CRUDBase
 from crewai_saas.model import Crew, Task, Agent, Tool, TaskContext, CrewCreate, CrewUpdate, TaskCreate, TaskUpdate, AgentCreate, AgentUpdate, TaskContextCreate, TaskContextUpdate, ToolCreate, ToolUpdate
 
 class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
-    async def create(self, db: AsyncClient, *, obj_in: CrewCreate) -> Crew:
-        return await super().create(db, obj_in=obj_in)
 
     async def get(self, db: AsyncClient, *, id: int) -> Crew | None:
         return await super().get(db, id=id)
@@ -33,6 +31,10 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
     async def delete(self, db: AsyncClient, *, id: int) -> Crew:
         return await super().delete(db, id=id)
 
+    async def plus_usage(self, db: AsyncClient, *, id: int, usage: int) -> Crew:
+        data, count = await db.table(self.model.table_name).update({"usage": usage+1}).eq("id", id).execute()
+        _, updated = data
+        return self.model(**updated[0])
 
 class CRUDTask(CRUDBase[Task, TaskCreate, TaskUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: TaskCreate) -> Task:

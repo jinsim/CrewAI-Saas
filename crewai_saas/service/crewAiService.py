@@ -20,11 +20,12 @@ class CrewAiStartService:
     def __init__(self, session):
         self.cycle_id = None
         self.chat_id = None
+        self.api_key = os.getenv("GOOGLE_API_KEY")
         # self.llm = ChatOpenAI(model="gpt-4o-mini")
         self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
                            verbose=True,
                            temperature=0,
-                           google_api_key=os.getenv("GOOGLE_API_KEY"))
+                           google_api_key=self.api_key)
         self.session = session
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.start_loop, args=(self.loop,))
@@ -34,17 +35,17 @@ class CrewAiStartService:
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    async def append_message(self, task_id, task_mame, task_output): #특정 작업(task_id)에 메시지를 추가
-        logger.info("Appending message for cycle: %s task: %s task_output: %s", self.cycle_id, task_mame, task_output)
+    async def append_message(self, task_id, task_name, task_output, role): #특정 작업(task_id)에 메시지를 추가
+        logger.info("Appending message for cycle: %s task: %s task_output: %s", self.cycle_id, task_name, task_output)
 
         message_response = await crud.message.create(
             self.session,
-            obj_in=MessageCreate(content=str(task_output), task_id=task_id, role=MessageRole.ASSISTANT, chat_id=self.chat_id, cycle_id=self.cycle_id)
+            obj_in=MessageCreate(content=task_name + " : " + str(task_output), task_id=task_id, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id)
         )
 
     def create_callback(self, task_id, task_name, task_output):
         async def async_callback():
-            await self.append_message(task_id, task_name, task_output)
+            await self.append_message(task_id, task_name, task_output, role=MessageRole.ASSISTANT)
 
         return async_callback
 
@@ -65,6 +66,7 @@ class CrewAiStartService:
         )
 
     async def start(self, employed_crew_id, chat_id):
+        logger.info(f"Starting Crew AI Service for employed_crew_id: {employed_crew_id} chat_id: {chat_id}")
         # Fetch the employed_crew
         employed_crew = await crud.employed_crew.get_active(self.session, id=employed_crew_id)
         if not employed_crew:
@@ -77,6 +79,13 @@ class CrewAiStartService:
         if not crew:
             logger.error(f"Crew not found. crew_id: {crew_id}")
             raise Exception("Crew not found.")
+
+        if employed_crew.is_owner:
+            api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=employed_crew.user_id, llm_id=crew.llm_id)
+            if not api_key:
+                logger.error(f"API key not found for user_id: {employed_crew.user_id}, llm_id: {crew.llm_id}")
+                raise Exception("API key not found.")
+            self.api_key = api_key.value
 
         # Fetch agents associated with the crew
         agents = await crud.agent.get_all_active_by_crew_id(self.session, crew.id)
@@ -129,11 +138,10 @@ class CrewAiStartService:
 
         # Helper function to create Task instances
         async def get_task(task):
-            # Get context tasks IDs
-            context_task_ids = await crud.task_context.get_child_task_id_all_by_task_id(self.session, task.id)
             # Ensure context tasks are resolved before using them
-            context_tasks = [task_dict.get(task_id) for task_id in context_task_ids]
-
+            context_tasks = []
+            if task.context_task_ids:
+                context_tasks = [task_dict.get(task_id) for task_id in task.context_task_ids]
             return Task(
                 description=task.description+conversation,
                 expected_output=task.expected_output,
@@ -151,6 +159,8 @@ class CrewAiStartService:
                 task_dict[task_id] = await get_task(task)
 
         # Create the Crew instance
+        logger.info(f"agent_dict : {agent_dict}")
+        logger.info(f"task_dict : {task_dict}")
         crew_instance = Crew(
             agents=list(agent_dict.values()),  # Convert dict values to list
             tasks=list(task_dict.values()),  # Convert dict values to list
@@ -160,6 +170,7 @@ class CrewAiStartService:
         result = crew_instance.kickoff()
         metrics = crew_instance.usage_metrics
         logger.info(f"metric : {metrics}")
-        await self.append_message(None, "metrics: " + str(metrics))
-        await self.append_message(None, "Crew AI Service Complete")
+        await crud.cycle.update_status(self.session, cycle_id=new_cycle.id, status=CycleStatus.FINISHED)
+        await self.append_message(None, "system", "metrics: " + str(metrics), role=MessageRole.SYSTEM)
+        await self.append_message(None,  "system", "Crew AI Service Complete", role=MessageRole.SYSTEM)
         return result

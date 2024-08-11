@@ -9,7 +9,7 @@ from crewai_saas.core.google_auth_utils import GoogleAuthUtils
 from crewai_saas.model import *
 from crewai_saas.service import crewai, crewAiService
 from crewai_saas.tool import function_map
-from crewai_saas.core.enum import CycleStatus, MessageRole
+from crewai_saas.core.enum import CycleStatus, MessageRole, CrewStatus
 
 router = APIRouter()
 
@@ -20,8 +20,13 @@ async def test(session: SessionDep) -> Response:
     return Response(content="Success")
 
 @router.post("/")
-async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep) -> EmployedCrew:
-    return await crud.employed_crew.create(session, obj_in=employed_crew_in)
+async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep) -> EmployedCrewWithCrew:
+    crew = await crud.crew.get_active(session, id=employed_crew_in.crew_id)
+    if crew.status != CrewStatus.PUBLIC:
+        raise Exception("Crew is not published")
+    crew = await crud.crew.plus_usage(session, id=employed_crew_in.crew_id, usage=crew.usage)
+    employed_crew = await crud.employed_crew.create(session, obj_in=employed_crew_in)
+    return EmployedCrewWithCrew(**employed_crew.dict(), crew=crew)
 
 @router.put("/{employed_crew_id}")
 async def update_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
@@ -41,8 +46,12 @@ async def read_employed_crews_by_user(session: SessionDep
 
 
 @router.get("/{employed_crew_id}")
-async def read_employed_crew_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> EmployedCrew | None:
-    return await crud.employed_crew.get_active(session, id=employed_crew_id)
+async def read_employed_crew_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> EmployedCrewWithCrew | None:
+
+    employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    crew = await crud.crew.get_active(session, id=employed_crew.crew_id)
+    return EmployedCrewWithCrew(**employed_crew.dict(), crew=crew)
+
 
 @router.delete("/{employed_crew_id}")
 async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
@@ -50,15 +59,9 @@ async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The 
     return await crud.employed_crew.soft_delete(session, id=employed_crew_id)
 
 
-# Run Crew 예제
-@router.get("/{employed_crew_id}/info", description="고용된 크루 하위의 모든 정보를 반환")
-async def get_char_info(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                      req: Request, session: SessionDep) -> Response:
-    return await crewai.make_response(session=session, employed_crew_id=employed_crew_id)
-
 @router.post("/{employed_crew_id}/chats/start")
 async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                         messages_in: list[MessageRequest], session: SessionDep) -> ChatWithAll:
+                         messages_in: list[MessageRequest], session: SessionDep) -> ChatWithCycle:
     chat = await crud.chat.create(session, obj_in=ChatCreate(employed_crew_id=employed_crew_id))
     cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat.id))
     message_dtos = []
@@ -70,7 +73,7 @@ async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(t
         message_dtos.append(MessageSimple(**msg.dict()))
     cycle = await crud.cycle.update(session, obj_in=CycleUpdateStatus(id=cycle.id, status=CycleStatus.FINISHED.value), id=cycle.id)
     cycle_with_messages = CycleWithMessage(**cycle.dict(), messages=message_dtos)
-    chat_with_all = ChatWithAll(**chat.dict(), cycle=cycle_with_messages)
+    chat_with_all = ChatWithCycle(**chat.dict(), cycle=cycle_with_messages)
     return chat_with_all
 
 
@@ -78,11 +81,38 @@ async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(t
 async def read_chats(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> list[Chat]:
     return await crud.chat.get_all_active_by_employed_crew_id(session, employed_crew_id=employed_crew_id)
 
-
-@router.get("/{employed_crew_id}/chats/{chat_id}")
+@router.get("/{employed_crew_id}/chats/{chat_id}/finished", description="채팅방 하위 모든 정보 (finished 된 사이클만)")
 async def read_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                    session: SessionDep) -> Chat | None:
-    return await crud.chat.get_active(session, id=chat_id)
+                    session: SessionDep) -> ChatWithCycleList | None:
+    chat = await crud.chat.get_active(session, id=chat_id)
+    cycles = await crud.cycle.get_all_finished_by_chat_id(session, chat_id=chat_id)
+    cycle_with_messages = []
+    for cycle in cycles:
+        messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
+        message_dtos = [
+            MessageSimple(**message.dict())
+            for message in messages
+        ]
+        cycle_with_messages.append(CycleWithMessage(**cycle.dict(), messages=message_dtos))
+    chat_with_all = ChatWithCycleList(**chat.dict(), cycles=cycle_with_messages)
+    return chat_with_all
+
+@router.get("/{employed_crew_id}/chats/{chat_id}/info", description="채팅방 하위의 모든 정보 (모든 사이클)")
+async def read_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
+                    session: SessionDep) -> ChatWithCycleList | None:
+    chat = await crud.chat.get_active(session, id=chat_id)
+    cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
+    cycle_with_messages = []
+    for cycle in cycles:
+        messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
+        message_dtos = [
+            MessageSimple(**message.dict())
+            for message in messages
+        ]
+        cycle_with_messages.append(CycleWithMessage(**cycle.dict(), messages=message_dtos))
+    return cycle_with_messages
+    chat_with_all = ChatWithCycleList(**chat.dict(), cycles=cycle_with_messages)
+    return chat_with_all
 
 @router.delete("/{employed_crew_id}/chats/{chat_id}")
 async def delete_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
@@ -96,12 +126,26 @@ async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the
                       session: SessionDep) -> list[Cycle]:
     return await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
 
-@router.get("/{employed_crew_id}/chats/{chat_id}/cycles/active")
+@router.get("/{employed_crew_id}/chats/{chat_id}/cycles")
 async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                       chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                       session: SessionDep) -> list[CycleWithMessage]:
+    cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
+    cycle_with_messages = []
+    for cycle in cycles:
+        messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
+        message_dtos = [
+            MessageSimple(**message.dict())
+            for message in messages
+        ]
+        cycle_with_messages.append(CycleWithMessage(**cycle.dict(), messages=message_dtos))
+    return cycle_with_messages
+
+@router.get("/{employed_crew_id}/chats/{chat_id}/cycles/finished")
+async def read_finished_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+                               chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
+                               session: SessionDep) -> list[CycleWithMessage]:
     cycles = await crud.cycle.get_all_finished_by_chat_id(session, chat_id=chat_id)
-    print(f"cycles: {cycles}")
     cycle_with_messages = []
     for cycle in cycles:
         messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
@@ -122,6 +166,7 @@ async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID o
         for message in messages
     ]
     return CycleWithMessage(**cycle.dict(), messages=message_dtos)
+
 
 @router.post("/{employed_crew_id}/chats/{chat_id}/messages")
 async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
