@@ -4,26 +4,16 @@ from langchain.tools.base import StructuredTool
 import yfinance as yf
 from langchain_core.pydantic_v1 import BaseModel, Field
 
-
-class TickerInput(BaseModel):
-    ticker: str = Field(..., description="The ticker of the stock you want to get information about.")
-
-def stock_price_func(TickerInput):
-    ticker = TickerInput.ticker
-    ticker = yf.Ticker(ticker)
-    return ticker.history(period="1mo")
-
-stock_price = StructuredTool.from_function(
-    func=stock_price_func,
-    name="Stock Price",
-    description="""
-    Useful to get stock price data.
-    The input to this tool should be a ticker, for example AAPL, MSFT.
-    """,
-    args_schema=TickerInput,
-    return_direct=True
-)
 class StockInfoTools():
+
+    @tool("Stock Price")
+    def stock_price(ticker):
+        """
+        Useful to get stock price data.
+        The input to this tool should be a ticker, for example AAPL, MSFT.
+        """
+        ticker = yf.Ticker(ticker)
+        return ticker.history(period="1mo")
 
     @tool("Income Statement")
     def income_stmt(ticker):
