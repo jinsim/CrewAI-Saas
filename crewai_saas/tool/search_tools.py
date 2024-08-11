@@ -7,12 +7,17 @@ from langchain.tools import tool
 
 class SearchTools():
   @tool("Search the internet")
-  def search_internet(query):
-    """Useful to search the internet 
-    about a a given topic and return relevant results.
-    Don't search for anything that doesn't matter with the query.
-    Stop searching about the JavaScript.
+  def search_internet(query: str):
+    """Search the internet for a given topic and return relevant results.
+
+    Parameters:
+    - query (str): The search term or phrase to look up. This must be a string.
+
+    Notes:
+    - If the query is 'JavaScript', the search will be retried.
+    - The function will check to ensure that the query is a string. If the input is not a string, an error will occur.
     """
+    print("query: " + query)
     top_result_to_return = 4
     url = "https://google.serper.dev/search"
     payload = json.dumps({"q": query})
