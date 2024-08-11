@@ -39,7 +39,8 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     async def validate_user(self, db: AsyncClient, user_id: int, user_email: str) -> User:
         get_user = await super().get_active(db, id=user_id)
-        if not get_user:
+        get_user_by_email = await super().get_active_by_email(db, email=user_email)
+        if get_user is None or get_user_by_email is None:
             raise HTTPException(status_code=404, detail="User not found.")
         if get_user.email != user_email:
             raise HTTPException(status_code=403, detail="User ID does not match the token information.")
