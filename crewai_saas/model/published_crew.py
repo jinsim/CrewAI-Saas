@@ -35,6 +35,25 @@ class PublishedCrewUpdate(UpdateBase):
     output_price: Optional[float] = 0
     status: CrewStatus
     use_history: bool
+    usage: int
+    average_token_usage: int
+    updated_at: str
+    is_deleted: bool
+    llm_id: int
+    tags: Optional[List[str]] = None
+    task_ids: Optional[List[int]] = None
+    pre_questions: Optional[List[str]] = None
+    user_id: int
+
+class PublishedCrewUpdate(UpdateBase):
+    name: str
+    description: Optional[str] = None
+    greeting: Optional[str] = None
+    is_sequential: bool
+    input_price: Optional[float] = 0
+    output_price: Optional[float] = 0
+    status: CrewStatus
+    use_history: bool
     updated_at: str
     is_deleted: bool
     llm_id: int

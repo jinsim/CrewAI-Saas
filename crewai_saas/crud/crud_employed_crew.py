@@ -58,8 +58,6 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
-
-
     async def get_latest_by_chat_id(self, db: AsyncClient, chat_id: int) -> Optional[Cycle]:
         data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).order("id",
                                                                                                      desc=True).limit(
@@ -71,6 +69,11 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
             return None
 
         return [self.model(**item) for item in got][0]
+
+    async def update_status(self, db: AsyncClient, *, cycle_id: int, status: CycleStatus) -> Cycle:
+        data, count = await db.table(self.model.table_name).update({"status": status.value}).eq("id", cycle_id).execute()
+        _, got = data
+        return self.model(**got[0])
 
 
 employed_crew = CRUDEmployedCrew(EmployedCrew)
