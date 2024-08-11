@@ -1,9 +1,8 @@
+from fastapi import HTTPException
 from supabase_py_async import AsyncClient
-from typing import Generic, TypeVar, Any, List, Optional
 
 from crewai_saas.crud.base import CRUDBase, ReadBase
 from crewai_saas.model import *
-from crewai_saas.model.auth import UserIn
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: UserCreate) -> User:
@@ -37,6 +36,16 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     async def delete(self, db: AsyncClient, *, id: int) -> User:
         return await super().delete(db, id=id)
+
+    async def validate_user(self, db: AsyncClient, user_id: int, user_email: str) -> User:
+        get_user = await super().get_active(db, id=user_id)
+        get_user_by_email = await super().get_active_by_email(db, email=user_email)
+        if get_user is None or get_user_by_email is None:
+            raise HTTPException(status_code=404, detail="User not found.")
+        if get_user.email != user_email:
+            raise HTTPException(status_code=403, detail="User ID does not match the token information.")
+        return get_user
+
 
 class ReadCountry(ReadBase[Country]):
     async def get(self, db: AsyncClient, *, id: int) -> Country | None:

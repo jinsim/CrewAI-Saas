@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Path, Response, Request
+from fastapi import APIRouter, Path, Response, Request, Depends
 from starlette.responses import JSONResponse
 from typing import Annotated
 
 from crewai_saas import crud
+from crewai_saas.api.api_v1.endpoints.users import validate
 from crewai_saas.api.deps import CurrentUser, SessionDep
+from crewai_saas.core.google_auth_utils import GoogleAuthUtils
 from crewai_saas.crud import crew, employed_crew, api_key, task
 from crewai_saas.service import crewai, crewAiService
 
@@ -13,7 +15,6 @@ router = APIRouter()
 
 @router.post("/")
 async def create_crew(crew_in: CrewCreate, session: SessionDep) -> Crew:
-
     crew_data = await crew.create(session, obj_in=crew_in)
     await employed_crew.create_owned(session, crew_id=crew_data.id, user_id=crew_in.user_id)
     return crew_data
@@ -21,7 +22,12 @@ async def create_crew(crew_in: CrewCreate, session: SessionDep) -> Crew:
 
 @router.patch("/{crew_id}")
 async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                      crew_in: CrewUpdate, session: SessionDep) -> Crew:
+                      crew_in: CrewUpdate, session: SessionDep,
+                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Crew:
+    get_crew = await crew.get_active(session, id=crew_id)
+    validation_result = await validate(session, get_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crew.update(session, obj_in=crew_in, id=crew_id)
 
 @router.get("/")
@@ -94,7 +100,12 @@ async def get_char_info(crew_id: Annotated[int, Path(title="The ID of the Crew t
 
 @router.delete("/{crew_id}")
 async def delete_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                      session: SessionDep) -> Crew:
+                      session: SessionDep,
+                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Crew:
+    get_crew = await crew.get_active(session, id=crew_id)
+    validation_result = await validate(session, get_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     return await crew.soft_delete(session, id=crew_id)
 
 
