@@ -20,11 +20,12 @@ class CrewAiStartService:
     def __init__(self, session):
         self.cycle_id = None
         self.chat_id = None
+        self.api_key = os.getenv("GOOGLE_API_KEY")
         # self.llm = ChatOpenAI(model="gpt-4o-mini")
         self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
                            verbose=True,
                            temperature=0,
-                           google_api_key=os.getenv("GOOGLE_API_KEY"))
+                           google_api_key=self.api_key)
         self.session = session
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.start_loop, args=(self.loop,))
@@ -77,6 +78,13 @@ class CrewAiStartService:
         if not crew:
             logger.error(f"Crew not found. crew_id: {crew_id}")
             raise Exception("Crew not found.")
+
+        if employed_crew.is_owner:
+            api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=employed_crew.user_id, llm_id=crew.llm_id)
+            if not api_key:
+                logger.error(f"API key not found for user_id: {employed_crew.user_id}, llm_id: {crew.llm_id}")
+                raise Exception("API key not found.")
+            self.api_key = api_key.value
 
         # Fetch agents associated with the crew
         agents = await crud.agent.get_all_active_by_crew_id(self.session, crew.id)
@@ -157,7 +165,7 @@ class CrewAiStartService:
             verbose=True,
         )
 
-        result = crew_instance.kickoff()
+        # result = crew_instance.kickoff()
         metrics = crew_instance.usage_metrics
         logger.info(f"metric : {metrics}")
         await self.append_message(None, "metrics: " + str(metrics))

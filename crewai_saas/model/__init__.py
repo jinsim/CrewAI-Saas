@@ -10,3 +10,7 @@ from .user import User, UserCreate, UserUpdate, UserInDB, Country, CountryInDB, 
 from .crew import Crew, CrewCreate, CrewUpdate, CrewInDB, Task, TaskCreate, TaskUpdate, TaskInDB, Agent, AgentCreate, \
     AgentUpdate, AgentInDB, Tool, ToolCreate, ToolUpdate, ToolInDB, TaskContext, TaskContextCreate, TaskContextUpdate, \
     TaskContextInDB, TaskWithContext, AgentWithTool, CrewWithAll
+
+from .published_crew import PublishedCrew, PublishedCrewCreate, PublishedCrewUpdate, PublishedCrewInDB, \
+    PublishedCrewWithAll, PublishedTask, PublishedTaskCreate, PublishedTaskUpdate, PublishedTaskInDB, \
+    PublishedAgent, PublishedAgentCreate, PublishedAgentUpdate, PublishedAgentInDB

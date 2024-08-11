@@ -4,14 +4,19 @@ from typing import Annotated
 
 from crewai_saas import crud
 from crewai_saas.api.deps import CurrentUser, SessionDep
-from crewai_saas.crud import crew, api_key, task
+from crewai_saas.crud import crew, employed_crew, api_key, task
+
 from crewai_saas.model import Crew, CrewCreate, CrewUpdate
 
 router = APIRouter()
 
 @router.post("/")
 async def create_crew(crew_in: CrewCreate, session: SessionDep) -> Crew:
-    return await crew.create(session, obj_in=crew_in)
+
+    crew_data = await crew.create(session, obj_in=crew_in)
+    await employed_crew.create_owned(session, crew_id=crew_data.id, user_id=crew_in.user_id)
+    return crew_data
+
 
 @router.patch("/{crew_id}")
 async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
