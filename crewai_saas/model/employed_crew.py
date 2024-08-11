@@ -168,6 +168,7 @@ class MessageSimple(InDBBase):
 
 class CycleCreate(CreateBase):
     chat_id: int
+    execution_id: Optional[str] = None
     class Config:
         use_enum_values = True  # Enum 값을 문자열로 자동 변환
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
@@ -185,12 +186,14 @@ class CycleUpdate(UpdateBase):
 
 class CycleUpdateStatus(UpdateBase):
     status: CycleStatus
+    execution_id: Optional[str] = None
     class Config:
         use_enum_values = True  # Enum 값을 문자열로 자동 변환
         arbitrary_types_allowed = True  # 사용자 정의 타입을 허용
 
 class Cycle(ResponseBase):
     status: CycleStatus
+    execution_id: Optional[str] = None
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]
@@ -203,6 +206,7 @@ class Cycle(ResponseBase):
 
 class CycleInDB(InDBBase):
     status: CycleStatus
+    execution_id: Optional[str] = None
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]
