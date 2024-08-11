@@ -9,7 +9,7 @@ from crewai_saas.core.google_auth_utils import GoogleAuthUtils
 from crewai_saas.model import *
 from crewai_saas.service import crewai, crewAiService
 from crewai_saas.tool import function_map
-from crewai_saas.core.enum import CycleStatus, MessageRole
+from crewai_saas.core.enum import CycleStatus, MessageRole, CrewStatus
 
 router = APIRouter()
 
@@ -20,8 +20,13 @@ async def test(session: SessionDep) -> Response:
     return Response(content="Success")
 
 @router.post("/")
-async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep) -> EmployedCrew:
-    return await crud.employed_crew.create(session, obj_in=employed_crew_in)
+async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep) -> EmployedCrewWithCrew:
+    crew = await crud.crew.get_active(session, id=employed_crew_in.crew_id)
+    if crew.status != CrewStatus.PUBLIC:
+        raise Exception("Crew is not published")
+    crew = await crud.crew.plus_usage(session, id=employed_crew_in.crew_id, usage=crew.usage)
+    employed_crew = await crud.employed_crew.create(session, obj_in=employed_crew_in)
+    return EmployedCrewWithCrew(**employed_crew.dict(), crew=crew)
 
 @router.put("/{employed_crew_id}")
 async def update_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
@@ -41,8 +46,12 @@ async def read_employed_crews_by_user(session: SessionDep
 
 
 @router.get("/{employed_crew_id}")
-async def read_employed_crew_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> EmployedCrew | None:
-    return await crud.employed_crew.get_active(session, id=employed_crew_id)
+async def read_employed_crew_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> EmployedCrewWithCrew | None:
+
+    employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    crew = await crud.crew.get_active(session, id=employed_crew.crew_id)
+    return EmployedCrewWithCrew(**employed_crew.dict(), crew=crew)
+
 
 @router.delete("/{employed_crew_id}")
 async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
