@@ -68,6 +68,11 @@ class CRUDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType, UpdateS
         _, updated = data
         return self.model(**updated[0])
 
+    async def update_exclude_none(self, db: AsyncClient, *, obj_in: UpdateSchemaType, id: int) -> ModelType:
+        data, _ = await db.table(self.model.table_name).update(obj_in.model_dump(exclude_none=True)).eq("id", id).execute()
+        _, updated = data
+        return self.model(**updated[0])
+
     async def delete(self, db: AsyncClient, *, id: int) -> ModelType:
         data, _ = await db.table(self.model.table_name).delete().eq("id", id).execute()
         _, deleted = data
