@@ -15,7 +15,7 @@ class CrewUpdate(UpdateBase):
     is_sequential: Optional[bool] = None
     input_price: Optional[float] = None
     output_price: Optional[float] = None
-    status: Optional[CrewStatus] = None  # Assuming it's a string for simplicity
+    status: Optional[CrewStatus] = None
     use_history: Optional[bool] = None
     updated_at: Optional[str] = str(datetime.now())
     llm_id: Optional[int] = None

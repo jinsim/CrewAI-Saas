@@ -20,11 +20,10 @@ class GoogleAuthUtils:
 
     @staticmethod
     def load_jwk(jwk):
-        # JWK를 PEM 형식의 공개 키로 변환
+
         rsa_key = jwt.algorithms.RSAAlgorithm.from_jwk(jwk)
         return rsa_key
 
-#일단 안쓰는 함수
     @staticmethod
     def decode_google_id_token(id_token: str):
         try:
