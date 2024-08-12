@@ -1,7 +1,7 @@
 from supabase_py_async import AsyncClient
 
 from crewai_saas.core.enum import CrewStatus
-from crewai_saas.crud.base import CRUDBase
+from crewai_saas.crud.base import CRUDBase, UpdateSchemaType
 from crewai_saas.model import Crew, Task, Agent, Tool, TaskContext, CrewCreate, CrewUpdate, TaskCreate, TaskUpdate, AgentCreate, AgentUpdate, TaskContextCreate, TaskContextUpdate, ToolCreate, ToolUpdate
 
 class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
@@ -33,6 +33,12 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
 
     async def plus_usage(self, db: AsyncClient, *, id: int, usage: int) -> Crew:
         data, count = await db.table(self.model.table_name).update({"usage": usage+1}).eq("id", id).execute()
+        _, updated = data
+        return self.model(**updated[0])
+
+    async def update(self, db: AsyncClient, *, obj_in: UpdateSchemaType, id: int) -> Crew:
+        update_data = {k: v for k, v in obj_in.model_dump().items() if v is not None}
+        data, _ = await db.table(self.model.table_name).update(update_data).eq("id", id).execute()
         _, updated = data
         return self.model(**updated[0])
 

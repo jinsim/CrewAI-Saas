@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Path, Response, Request, Depends
 from starlette.responses import JSONResponse
-from typing import Annotated
+from typing import Annotated, Optional
 
 from crewai_saas import crud
 from crewai_saas.api.api_v1.endpoints.users import validate
@@ -22,13 +22,14 @@ async def create_crew(crew_in: CrewCreate, session: SessionDep) -> Crew:
 
 @router.patch("/{crew_id}")
 async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                      crew_in: CrewUpdate, session: SessionDep,
+                      session: SessionDep,
+                    crew_in: Optional[CrewUpdate]=None,
                       user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Crew:
     get_crew = await crew.get_active(session, id=crew_id)
     validation_result = await validate(session, get_crew.user_id, user_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
-    return await crew.update(session, obj_in=crew_in, id=crew_id)
+    return await crud.crew.update(session, obj_in=crew_in, id=crew_id)
 
 @router.get("/")
 async def read_crews(session: SessionDep) -> list[Crew]:

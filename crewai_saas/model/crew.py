@@ -23,6 +23,9 @@ class CrewUpdate(UpdateBase):
     task_ids: Optional[List[int]] = None
     pre_questions: Optional[List[str]] = None
 
+    class Config:
+        use_enum_values = True
+
 class Crew(ResponseBase):
     name: str
     description: Optional[str]
@@ -43,6 +46,9 @@ class Crew(ResponseBase):
     user_id: Optional[int] = None
 
     table_name: ClassVar[str] = "crew"
+    class Config:
+        use_enum_values = True
+        arbitrary_types_allowed = True
 
 
 class CrewInDB(InDBBase):
@@ -63,6 +69,9 @@ class CrewInDB(InDBBase):
     task_ids: Optional[List[int]]
     pre_questions: Optional[List[str]]
     user_id: Optional[int] = None
+    class Config:
+        use_enum_values = True
+        arbitrary_types_allowed = True
 
 class TaskCreate(CreateBase):
     agent_id: Optional[int] = None
