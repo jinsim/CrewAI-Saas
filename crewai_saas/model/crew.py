@@ -9,14 +9,14 @@ class CrewCreate(CreateBase):
     user_id: int
 
 class CrewUpdate(UpdateBase):
-    name: str
+    name: Optional[str] = None
     description: Optional[str] = None
     greeting: Optional[str] = None
-    is_sequential: bool
-    input_price: Optional[float] = 0
-    output_price: Optional[float] = 0
-    status: CrewStatus
-    use_history: Optional[bool] = False
+    is_sequential: Optional[bool] = None
+    input_price: Optional[float] = None
+    output_price: Optional[float] = None
+    status: Optional[CrewStatus] = None  # Assuming it's a string for simplicity
+    use_history: Optional[bool] = None
     updated_at: Optional[str] = str(datetime.now())
     llm_id: Optional[int] = None
     tags: Optional[List[str]] = None
@@ -40,10 +40,10 @@ class Crew(ResponseBase):
     updated_at: str
     is_deleted: bool
     llm_id: Optional[int]
-    tags: Optional[List[str]] = None
-    task_ids: Optional[List[int]] = None
-    pre_questions: Optional[List[str]] = None
-    user_id: Optional[int] = None
+    tags: Optional[List[str]]
+    task_ids: Optional[List[int]]
+    pre_questions: Optional[List[str]]
+    user_id: Optional[int]
 
     table_name: ClassVar[str] = "crew"
     class Config:
@@ -55,20 +55,20 @@ class CrewInDB(InDBBase):
     name: str
     description: Optional[str]
     greeting: Optional[str]
-    is_sequential: bool = False
+    is_sequential: bool
     input_price: Optional[float]
     output_price: Optional[float]
     status: CrewStatus
-    use_history: bool = False
-    usage: int = 0
-    average_token_usage: int = 0
+    use_history: bool
+    usage: int
+    average_token_usage: int
     updated_at: str
-    is_deleted: bool = False
+    is_deleted: bool
     llm_id: Optional[int]
     tags: Optional[List[str]]
     task_ids: Optional[List[int]]
     pre_questions: Optional[List[str]]
-    user_id: Optional[int] = None
+    user_id: Optional[int]
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True
