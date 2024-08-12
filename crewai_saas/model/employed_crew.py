@@ -70,6 +70,7 @@ class MessageUpdate(UpdateBase):
     input_token: Optional[int] = None
     output_token: Optional[int] = None
     class Config:
+        use_enum_values = True
         arbitrary_types_allowed = True
 
 

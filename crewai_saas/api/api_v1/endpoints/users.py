@@ -111,3 +111,6 @@ async def validate(session, user_id: int, user_email: str):
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})
     return True
+
+async def get_user_by_token(session: SessionDep, user_email: str):
+    return await user.get_active_by_email(session, email=user_email)
