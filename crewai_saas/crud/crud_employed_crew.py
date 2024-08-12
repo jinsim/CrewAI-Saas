@@ -20,7 +20,6 @@ class CRUDEmployedCrew(CRUDBase[EmployedCrew, EmployedCrewCreate, EmployedCrewUp
 
 
 class CRUDChat(CRUDBase[Chat, ChatCreate, ChatUpdate]):
-    # 사이클이 생길 때마다 updated_at을 갱신한다.(최신순으로 정렬)
     async def get_all_active_by_employed_crew_id(self, db: AsyncClient, *, employed_crew_id: int) -> list[Chat]:
         data, count = await db.table(self.model.table_name).select("*").eq("employed_crew_id", employed_crew_id).eq("is_deleted", False).order("updated_at", desc=True).execute()
         _, got = data
@@ -40,7 +39,6 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageUpdate]):
         await db.table("employed_crew").update({"updated_at": "now()"}).eq("id", chat_data.employed_crew_id).execute()
         return self.model(**got[0])
 
-    # 사이클이 생길 때마다 updated_at을 갱신한다.(최신순으로 정렬)
     async def get_all_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Message]:
         data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).order("id", desc=True).execute()
         _, got = data
@@ -69,7 +67,6 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
             1).execute()
         _, got = data
 
-        # 데이터가 없으면 None을 반환
         if not got:
             return None
 

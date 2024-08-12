@@ -2,7 +2,6 @@ from supabase_py_async import AsyncClient
 
 from crewai_saas.crud.base import CRUDBase
 from crewai_saas.model import TestItem, TestItemCreate, TestItemUpdate
-from crewai_saas.model.auth import UserIn
 
 
 class CRUDTestItem(CRUDBase[TestItem, TestItemCreate, TestItemUpdate]):

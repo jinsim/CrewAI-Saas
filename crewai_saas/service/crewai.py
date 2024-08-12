@@ -5,7 +5,7 @@ import threading
 
 from crewai_saas import crud
 from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll, CycleCreate, MessageCreate
-from crewai_saas.tool import function_map
+
 import logging
 
 logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a',
@@ -29,7 +29,6 @@ async def make_response(session, crew_id):
         logger.error(f"Task count is not matched. crew_id: {crew.id}, tasks : {tasks}, task_ids : {crew.task_ids}")
         return Exception("Task count is not matched.")
 
-    # Sort tasks by crew's task_ids
     sorted_tasks = sorted(tasks, key=lambda task: crew.task_ids.index(task.id))
 
     agents = await crud.agent.get_all_active_by_crew_id(session, crew.id)
