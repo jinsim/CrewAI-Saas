@@ -22,12 +22,8 @@ async def init_super_client() -> None:
         settings.SUPABASE_KEY,
         options=ClientOptions(postgrest_client_timeout=10, storage_client_timeout=10),
     )
-    # await super_client.auth.sign_in_with_password(
-    #     {"email": settings.SUPERUSER_EMAIL, "password": settings.SUPERUSER_PASSWORD}
-    # )
 
 
-# auto get access_token from header
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl="please login by supabase-js to get token"
 )
@@ -61,9 +57,6 @@ async def get_db_auth(user: CurrentUser) -> AsyncClient:
                 postgrest_client_timeout=10, storage_client_timeout=10
             ),
         )
-        # checks all done in supabase-py !
-        # await client.auth.set_session(token.access_token, token.refresh_token)
-        # session = await client.auth.get_session()
         yield client
 
     except AuthApiError as e:
@@ -85,7 +78,7 @@ async def get_db() -> AsyncClient:
                 postgrest_client_timeout=10, storage_client_timeout=10
             ),
         )
-        # checks all done in supabase-py !
+
         yield client
 
     except Exception as e:

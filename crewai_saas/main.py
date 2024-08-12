@@ -1,4 +1,3 @@
-import json
 import os
 import uvicorn
 
@@ -12,31 +11,26 @@ from crewai_saas.core.exceptions import CustomException, unicorn_exception_handl
 
 
 def create_app() -> FastAPI:
-    # init FastAPI with lifespan
     app = FastAPI(
         lifespan=lifespan,
         title=settings.PROJECT_NAME,
         openapi_url=f"{settings.API_V1_STR}/openapi.json",
         generate_unique_id_function=lambda router: f"{router.tags[0]}-{router.name}",
     )
-    # set CORS
-    # Set all CORS enabled origins
     origins = [
-        "http://127.0.0.1:3000",  # 로컬 개발 환경
-        "http://localhost:3000",  # 로컬 개발 환경
-        "https://crewai-saas-aqnzqc74rq-an.a.run.app",  # 배포된 백엔드
-        # 필요에 따라 다른 도메인 추가
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+        "https://crewai-saas-aqnzqc74rq-an.a.run.app",
+        "groopy.me",
+        "https://groopy.me"
     ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,  # 명시적으로 허용할 도메인 리스트
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-
-    # Include the routers
     app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
@@ -52,7 +46,7 @@ if __name__ == "__main__":
 @app.middleware("http")
 async def add_cors_header(request: Request, call_next):
     response = await call_next(request)
-    if response.status_code == 307:  # 리디렉션 응답에만 헤더 추가
+    if response.status_code == 307:
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"

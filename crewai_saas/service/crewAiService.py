@@ -4,7 +4,6 @@ import logging
 import threading
 from textwrap import dedent
 from crewai import Agent, Task, Crew
-from langchain_openai import ChatOpenAI
 from crewai_saas import crud
 from crewai_saas.core.enum import CycleStatus, MessageRole
 from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll, CycleCreate, MessageCreate, ChatCreate
@@ -21,7 +20,6 @@ class CrewAiStartService:
         self.cycle_id = None
         self.chat_id = None
         self.api_key = os.getenv("GOOGLE_API_KEY")
-        # self.llm = ChatOpenAI(model="gpt-4o-mini")
         self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
                            verbose=True,
                            temperature=0,
@@ -53,14 +51,14 @@ class CrewAiStartService:
         self.cycle_id = cycle_id
         self.chat_id = chat_id
         logger.info(f"Starting Crew AI Service for employed_crew_id: {employed_crew_id} chat_id: {chat_id}")
-        # Fetch the employed_crew
+
         employed_crew = await crud.employed_crew.get_active(self.session, id=employed_crew_id)
         if not employed_crew:
             logger.error(f"Employed crew not found. employed_crew_id: {employed_crew_id}")
             raise Exception("Employed crew not found.")
 
         crew_id = employed_crew.crew_id
-        # Fetch the crew
+
         crew = await crud.crew.get_active(self.session, id=crew_id)
         if not crew:
             logger.error(f"Crew not found. crew_id: {crew_id}")
@@ -73,7 +71,7 @@ class CrewAiStartService:
                 raise Exception("API key not found.")
             self.api_key = api_key.value
 
-        # Fetch agents associated with the crew
+
         agents = await crud.agent.get_all_active_by_crew_id(self.session, crew.id)
         if not agents:
             logger.error(f"Agents not found for crew_id: {crew.id}")
@@ -89,7 +87,6 @@ class CrewAiStartService:
 
         logger.info(f"Conversation: {conversation}")
 
-        # Helper function to create Agent instances
         async def get_agent(agent):
             tools = []
             if agent.tool_ids:
@@ -106,21 +103,17 @@ class CrewAiStartService:
                 max_iter=10
             )
 
-        # Create a dictionary to hold Agent instances
+
         agent_dict = {agent.id: await get_agent(agent) for agent in agents}
 
-        # Fetch tasks associated with the crew
         tasks = await crud.task.get_all_active_by_crew_id(self.session, crew.id)
         if not tasks:
             logger.error(f"Tasks not found for crew_id: {crew.id}")
             raise Exception("Tasks not found.")
 
-        # Create a dictionary to hold Task instances
         task_dict = {}
 
-        # Helper function to create Task instances
         async def get_task(task):
-            # Ensure context tasks are resolved before using them
             context_tasks = []
             if task.context_task_ids:
                 context_tasks = [task_dict.get(task_id) for task_id in task.context_task_ids]
@@ -134,18 +127,16 @@ class CrewAiStartService:
                 ).result()
             )
 
-        # Populate task_dict with Task instances
         for task_id in crew.task_ids:
             task = await crud.task.get_active(self.session, id=task_id)
             if task:
                 task_dict[task_id] = await get_task(task)
 
-        # Create the Crew instance
         logger.info(f"agent_dict : {agent_dict}")
         logger.info(f"task_dict : {task_dict}")
         crew_instance = Crew(
-            agents=list(agent_dict.values()),  # Convert dict values to list
-            tasks=list(task_dict.values()),  # Convert dict values to list
+            agents=list(agent_dict.values()),
+            tasks=list(task_dict.values()),
             verbose=True,
         )
 

@@ -5,7 +5,6 @@ from fastapi import HTTPException, Header
 from typing import Optional
 from dotenv import load_dotenv
 
-# .env 파일의 환경 변수를 로드합니다
 load_dotenv()
 
 
@@ -29,11 +28,9 @@ class GoogleAuthUtils:
     @staticmethod
     def decode_google_id_token(id_token: str):
         try:
-            # 구글의 공개 키를 가져옵니다
             public_keys = GoogleAuthUtils.get_google_public_keys()
             print(f"Public Keys: {public_keys}")
 
-            # 토큰의 헤더에서 키 ID를 가져옵니다
             headers = jwt.get_unverified_header(id_token)
             print(f"Token Headers: {headers}")
             kid = headers.get('kid')
@@ -41,17 +38,14 @@ class GoogleAuthUtils:
                 raise HTTPException(status_code=403, detail="Invalid token: Key ID not found in token header")
             print(f"Key ID: {kid}")
 
-            # 키 ID에 해당하는 공개 키를 찾습니다
             public_key_data = next((key for key in public_keys['keys'] if key['kid'] == kid), None)
             if public_key_data is None:
                 raise HTTPException(status_code=403, detail="Invalid token: Public key not found for Key ID")
             print(f"Public Key Data: {public_key_data}")
 
-            # 공개 키를 변환합니다
             public_key = GoogleAuthUtils.load_jwk(public_key_data)
             print(f"Public Key: {public_key}")
 
-            # 공개 키를 사용하여 토큰을 디코딩합니다
             payload = jwt.decode(id_token, public_key, algorithms=['RS256'], audience=GoogleAuthUtils.GOOGLE_CLIENT_ID)
             print(f"Payload: {payload}")
             return payload
@@ -74,14 +68,6 @@ class GoogleAuthUtils:
             if token_type.lower() != "bearer":
                 raise HTTPException(status_code=403, detail="Invalid token type")
             return extract_email_from_jwt(token)
-            #payload = GoogleAuthUtils.decode_google_id_token(token)
-
-            #email = payload.get('email')
-
-            #if not email:
-               # raise HTTPException(status_code=403, detail="Email not found in token")
-
-            #return email
         except ValueError:
             raise HTTPException(status_code=403, detail="Invalid token format")
         except HTTPException as e:
@@ -92,11 +78,9 @@ class GoogleAuthUtils:
 
 def extract_email_from_jwt(token: str) -> str:
     try:
-        # JWT 디코딩 (서명 검증 없이)
         payload = jwt.decode(token, options={"verify_signature": False})
         print(f"Payload: {payload}")
 
-        # 이메일 값 추출
         email = payload.get("email")
         print(f"Email: {email}")
         if not email:
