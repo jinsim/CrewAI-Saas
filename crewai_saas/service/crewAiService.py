@@ -33,7 +33,7 @@ class CrewAiStartService:
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    async def append_message(self, task_id, task_name, task_output, role): #특정 작업(task_id)에 메시지를 추가
+    async def append_message(self, task_id, task_name, task_output, role):
         logger.info("Appending message for cycle: %s task: %s task_output: %s", self.cycle_id, task_name, task_output)
 
         message_response = await crud.message.create(

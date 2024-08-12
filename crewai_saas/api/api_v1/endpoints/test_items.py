@@ -21,12 +21,6 @@ async def read_test_items(session: SessionDep) -> list[TestItem]:
 async def read_test_item_by_id(id: int, session: SessionDep) -> TestItem | None:
     return await test_item.get(session, id=id)
 
-# 세션?
-# @router.get("/get-by-owner")
-# async def read_test_item_by_owner(session: SessionDep, user: CurrentUser) -> list[TestItem]:
-#     return await test_item.get_multi_by_owner(session, user=user)
-
-
 @router.put("/update-test_item/{id}")
 async def update_test_item(id: int, test_item_in: TestItemUpdate, session: SessionDep) -> TestItem:
     return await test_item.update(session, obj_in=test_item_in, id=id)
