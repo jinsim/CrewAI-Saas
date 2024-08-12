@@ -22,24 +22,25 @@ async def make_response(session, crew_id):
     tasks = await crud.task.get_all_active_by_crew_id(session, crew.id)
     if not tasks:
         logger.error(f"Task not found. crew_id: {crew.id}")
-        return Exception("Task not found.")
-
-
-    if len(crew.task_ids) != len(tasks):
-        logger.error(f"Task count is not matched. crew_id: {crew.id}, tasks : {tasks}, task_ids : {crew.task_ids}")
-        return Exception("Task count is not matched.")
-
-    sorted_tasks = sorted(tasks, key=lambda task: crew.task_ids.index(task.id))
+        sorted_tasks = []
+    elif crew.task_ids is not None:
+        sorted_tasks = [task for task_id in crew.task_ids for task in tasks if task.id == task_id]
+        if len(crew.task_ids) != len(tasks):
+            logger.error(f"Task count is not matched. crew_id: {crew.id}, tasks : {tasks}, task_ids : {crew.task_ids}")
+            sorted_task_table = sorted(tasks, key=lambda task: task.id, reverse=True)
+            sorted_tasks += [task for task in sorted_task_table if task.id not in sorted_tasks]
+    else:
+        sorted_tasks = sorted(tasks, key=lambda task: task.id, reverse=True)
 
     agents = await crud.agent.get_all_active_by_crew_id(session, crew.id)
     if not agents:
         logger.error(f"Agent not found. crew_id: {crew.id}")
-        return Exception("Agent not found.")
-
-    agent_with_tools = [
-        AgentWithTool(**agent.dict(), tools=await crud.tool.get_all_by_ids(session, agent.tool_ids))
-        for agent in agents
-    ]
+        agent_with_tools = []
+    else:
+        agent_with_tools = [
+            AgentWithTool(**agent.dict(), tools=await crud.tool.get_all_by_ids(session, agent.tool_ids))
+            for agent in agents
+        ]
 
     crew_dict = crew.dict()
     crew_dict['tasks'] = sorted_tasks
