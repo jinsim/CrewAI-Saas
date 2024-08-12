@@ -1,6 +1,8 @@
+from typing import List
 from fastapi import HTTPException
 from supabase_py_async import AsyncClient
 
+from crewai_saas.core.cryptographyUtils import utils
 from crewai_saas.crud.base import CRUDBase, ReadBase
 from crewai_saas.model import *
 
@@ -59,25 +61,48 @@ class ReadCountry(ReadBase[Country]):
 
 class CRUDApiKey(CRUDBase[ApiKey, ApiKeyCreate, ApiKeyUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: ApiKeyCreate) -> ApiKey:
+        obj_in.value = utils.encrypt(obj_in.value)
         return await super().create(db, obj_in=obj_in)
 
     async def get(self, db: AsyncClient, *, id: int) -> ApiKey | None:
-        return await super().get(db, id=id)
-
+        api_key = await super().get(db, id=id)
+        decrypted_api_key = utils.decrypt(api_key.value)
+        api_key.value = decrypted_api_key
+        return api_key
     async def get_active(self, db: AsyncClient, *, id: int) -> ApiKey | None:
-        return await super().get_active(db, id=id)
+        api_key = await super().get_active(db, id=id)
+        decrypted_api_key = utils.decrypt(api_key.value)
+        api_key.value = decrypted_api_key
+        return api_key
 
     async def get_all(self, db: AsyncClient) -> list[ApiKey]:
-        return await super().get_all(db)
+        api_keys = await super().get_all(db)
+        return [
+            ApiKey(**{**api_key.dict(), 'value': utils.decrypt(api_key.value)})
+            for api_key in api_keys
+        ]
 
     async def get_all_active(self, db: AsyncClient) -> list[ApiKey]:
-        return await super().get_all_active(db)
+        api_keys= await super().get_all_active(db)
+        return [
+            ApiKey(**{**api_key.dict(), 'value': utils.decrypt(api_key.value)})
+            for api_key in api_keys
+        ]
 
-    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[ApiKey]:
-        return await super().get_multi_by_owner(db, user_id=user_id)
+    async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> List[ApiKey]:
+        api_keys = await super().get_multi_by_owner(db, user_id=user_id)
+
+        return [
+            ApiKey(**{**api_key.dict(), 'value': utils.decrypt(api_key.value)})
+            for api_key in api_keys
+        ]
 
     async def get_all_active_by_owner(self, db: AsyncClient, user_id: int) -> list[ApiKey]:
-        return await super().get_all_active_by_owner(db, user_id=user_id)
+        api_keys =  await super().get_all_active_by_owner(db, user_id=user_id)
+        return [
+            ApiKey(**{**api_key.dict(), 'value': utils.decrypt(api_key.value)})
+            for api_key in api_keys
+        ]
 
     async def get_active_by_llm_provider_id(self, db: AsyncClient, *, llm_provider_id: int) -> ApiKey | None:
         return await db.table(self.model.table_name).select("*").eq("llm_provider_id", llm_provider_id).execute()
