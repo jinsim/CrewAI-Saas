@@ -19,10 +19,42 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
         return await super().get_all_active(db)
 
     async def get_all_active_published(self, db: AsyncClient) -> list[Crew]:
-        data, count = await db.table(self.model.table_name).select("*").eq("status", CrewStatus.PUBLIC).eq("is_deleted",
+        data, count = await db.table(self.model.table_name).select("*").eq("status", CrewStatus.PUBLIC.value).eq("is_deleted",
                                                                                                   False).order("updated_at", desc=True).execute()
         _, got = data
         return [self.model(**item) for item in got]
+
+    from supabase_py_async import AsyncClient
+    from typing import List
+
+    async def search_crews(self, db: AsyncClient, *, search_string: str) -> List[Crew]:
+        filter_conditions = f"name.ilike.%{search_string}%,description.ilike.%{search_string}%"
+
+        response = await db.table(self.model.table_name) \
+            .select("*") \
+            .or_(filter_conditions) \
+            .eq("status", CrewStatus.PUBLIC.value) \
+            .order("updated_at", desc=True) \
+            .execute()
+
+        got = response.data
+        return [self.model(**item) for item in got]
+
+    async def get_all_public_crews_by_user_id(self, db: AsyncClient, *, user_id: int) -> list[Crew]:
+        data, count = await db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("status", CrewStatus.PUBLIC.value).eq("is_deleted",
+                                                                                                           False).order(
+            "updated_at", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
+    async def get_all_crews_by_owner(self, db: AsyncClient, *, user_id: int) -> list[Crew]:
+        print(user_id)
+        data, count = await db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("is_deleted",
+                                                                                                           False).order(
+            "updated_at", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
 
 
     async def get_multi_by_owner(self, db: AsyncClient, user_id: int) -> list[Crew]:

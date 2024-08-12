@@ -3,10 +3,10 @@ from starlette.responses import JSONResponse
 from typing import Annotated, Optional
 
 from crewai_saas import crud
-from crewai_saas.api.api_v1.endpoints.users import validate
+from crewai_saas.api.api_v1.endpoints.users import validate, get_user_by_token
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.core.google_auth_utils import GoogleAuthUtils
-from crewai_saas.crud import crew, employed_crew, api_key, task
+from crewai_saas.crud import crew, employed_crew, api_key, task, user
 from crewai_saas.service import crewai, crewAiService
 
 from crewai_saas.model import Crew, CrewCreate, CrewUpdate
@@ -34,6 +34,22 @@ async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
 @router.get("/")
 async def read_crews(session: SessionDep) -> list[Crew]:
     return await crew.get_all_active(session)
+
+@router.get("/me")
+async def read_all_crews_by_owner_id(session: SessionDep,
+                                     user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Crew]:
+
+    get_user_by_email = await get_user_by_token(session, user_email=user_email)
+    return await crew.get_all_crews_by_owner(session, user_id=get_user_by_email.id)
+
+@router.get("/users/{user_id}")
+async def read_public_crews_by_user_id(user_id: Annotated[int, Path(title="The ID of the Crew to get")], session: SessionDep) -> list[Crew]:
+    return await crew.get_all_public_crews_by_user_id(session, user_id=user_id)
+
+@router.get("/search")
+async def search_crews(search_query: str,
+                       session: SessionDep) -> list[Crew]:
+    return await crew.search_crews(session, search_string=search_query)
 
 @router.get("/public")
 async def read_published_crews(session: SessionDep) -> list[Crew]:
