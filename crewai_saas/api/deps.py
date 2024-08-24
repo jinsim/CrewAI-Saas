@@ -29,8 +29,6 @@ reusable_oauth2 = OAuth2PasswordBearer(
 )
 AccessTokenDep = Annotated[str, Depends(reusable_oauth2)]
 
-
-# 회원 인증 인가 추가 시 수정
 async def get_current_user(access_token: AccessTokenDep) -> UserIn:
     """get current user from access_token and  validate same time"""
     if not super_client:

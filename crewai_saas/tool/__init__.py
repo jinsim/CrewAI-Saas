@@ -26,9 +26,3 @@ def execute_function_by_string(func_name, *args, **kwargs):
     else:
         raise ValueError(f"Function '{func_name}' not found in the tool package!")
 
-# Handling unknown functions
-# try:
-#     print(execute_function_by_string("unknown_function", "some_param"))
-# except ValueError as e:
-#     print(e)  # Output: Function 'unknown_function' not found in the tool package!
-

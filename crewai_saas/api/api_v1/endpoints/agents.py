@@ -21,7 +21,6 @@ async def read_agents_by_crew_id(crew_id: Annotated[int, Path(title="The ID of t
     ]
     return ret
 
-# task_id로 agent 반환 (task_id로 agent_id를 가져온 후 agent_id로 agent를 가져온다.)
 @router.get("/by-task-id/{task_id}")
 async def read_agents_by_task_id(task_id: Annotated[int, Path(title="The ID of the Task to get")],
                                  session: SessionDep) -> Agent:

@@ -34,7 +34,7 @@ class StockInfoTools:
         - A summary of the company's income statement, including revenue, gross profit, operating income, and net income.
         """
         ticker_info = yf.Ticker(ticker)
-        financials = ticker_info.financials.T  # Transpose for easier reading
+        financials = ticker_info.financials.T
 
         result = "Period | Revenue | Gross Profit | Operating Income | Net Income\n"
         result += "\n".join(
@@ -54,7 +54,7 @@ class StockInfoTools:
         - A summary of the company's balance sheet, including total assets, liabilities, and shareholders' equity.
         """
         ticker_info = yf.Ticker(ticker)
-        balance_sheet = ticker_info.balance_sheet.T  # Transpose for easier reading
+        balance_sheet = ticker_info.balance_sheet.T
 
         result = "Period | Total Assets | Total Liabilities | Shareholders' Equity\n"
         result += "\n".join(

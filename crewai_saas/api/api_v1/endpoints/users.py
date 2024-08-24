@@ -64,7 +64,8 @@ async def create_api_key(user_id: Annotated[int, Path(title="The ID of the User 
     validation_result = await validate(session, user_id, user_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
-    return await api_key.create(session, obj_in=api_key_in)
+    created_api_key = await api_key.create(session, obj_in=api_key_in)
+    return await api_key.get(session, id=created_api_key.id)
 
 
 

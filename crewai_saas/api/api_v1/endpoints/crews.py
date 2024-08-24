@@ -84,7 +84,6 @@ async def verify_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
             content={"message": "Crew has no description"},
         )
 
-    # crew에 LLM ID가 없는지 확인
     if get_crew.llm_id is None:
         return JSONResponse(
             status_code=404,
