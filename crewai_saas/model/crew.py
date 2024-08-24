@@ -83,9 +83,9 @@ class TaskCreate(CreateBase):
 
 class TaskUpdate(UpdateBase):
     agent_id: Optional[int] = None
-    name: Optional[str]
-    description: Optional[str]
-    expected_output: Optional[str]
+    name: Optional[str] = None
+    description: Optional[str] = None
+    expected_output: Optional[str] = None
     context_task_ids: Optional[list] = None
 
 class Task(ResponseBase):
@@ -166,10 +166,10 @@ class AgentCreate(CreateBase):
     tool_ids: Optional[List[int]] = None
 
 class AgentUpdate(UpdateBase):
-    name: Optional[str] = ""
-    role: Optional[str] = ""
-    goal: Optional[str] = ""
-    backstory: Optional[str] = ""
+    name: Optional[str] = None
+    role: Optional[str] = None
+    goal: Optional[str] = None
+    backstory: Optional[str] = None
     llm_id: Optional[int] = None
     tool_ids: Optional[List[int]] = None
 

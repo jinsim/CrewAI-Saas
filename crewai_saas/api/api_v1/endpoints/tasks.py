@@ -20,7 +20,7 @@ async def read_tasks_by_crew_id(crew_id: Annotated[int, Path(title="The ID of th
 @router.patch("/{task_id}")
 async def update_task(task_id: Annotated[int, Path(title="The ID of the Task to get")],
                            task_in: TaskUpdate, session: SessionDep) -> Task:
-    return await task.update(session, obj_in=task_in, id=task_id)
+    return await task.update_exclude_none(session, obj_in=task_in, id=task_id)
 
 @router.delete("/{task_id}")
 async def delete_task(task_id: Annotated[int, Path(title="The ID of the Task to get")],

@@ -25,7 +25,6 @@ async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
                       session: SessionDep,
                       crew_in: CrewUpdate,
                       user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Crew:
-    print(crew_in)
     get_crew = await crew.get_active(session, id=crew_id)
     validation_result = await validate(session, get_crew.user_id, user_email)
     if isinstance(validation_result, JSONResponse):
