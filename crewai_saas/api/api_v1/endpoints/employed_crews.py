@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Annotated
 from fastapi import FastAPI, Path, Query, Request, Response
@@ -24,11 +26,12 @@ async def test(session: SessionDep) -> Response:
 
 @router.post("/")
 async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrewWithCrew:
-    validation_result = await validate(session, EmployedCrewCreate.user_id, user_email)
+    logging.info(f"Creating employed_crew: {employed_crew_in}, user_email: {user_email}, user_id: {employed_crew_in.user_id}")
+    validation_result = await validate(session, employed_crew_in.user_id, user_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     crew = await crud.crew.get_active(session, id=employed_crew_in.crew_id)
-    if crew.status != CrewStatus.PUBLIC:
+    if crew.status == CrewStatus.EDITING:
         raise Exception("Crew is not published")
     crew = await crud.crew.plus_usage(session, id=employed_crew_in.crew_id, usage=crew.usage)
     employed_crew = await crud.employed_crew.create(session, obj_in=employed_crew_in)
@@ -274,6 +277,7 @@ async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of t
     result = await crewAiService.CrewAiStartService(session).start(employed_crew_id=employed_crew_id, chat_id=chat_id, cycle_id=new_cycle.id)
     print("result")
     print(result)
-    await crud.cycle.update_status(session, cycle_id=new_cycle.id, status=CycleStatus.FINISHED)
+    # await crud.cycle.update_status(session, cycle_id=new_cycle.id, status=CycleStatus.FINISHED)
+    # return Response(content="Success")
     return result
 

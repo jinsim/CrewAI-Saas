@@ -10,6 +10,7 @@ from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll, Cycle
 from crewai_saas.tool import function_map
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 
 logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a',
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,11 +20,16 @@ class CrewAiStartService:
     def __init__(self, session):
         self.cycle_id = None
         self.chat_id = None
-        self.api_key = os.getenv("GOOGLE_API_KEY")
-        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
+        # self.api_key = os.getenv("GOOGLE_API_KEY")
+        # self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
+        #                    verbose=True,
+        #                    temperature=0,
+        #                    google_api_key=self.api_key)
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.llm = ChatOpenAI(model="gpt-4o-mini",
                            verbose=True,
                            temperature=0,
-                           google_api_key=self.api_key)
+                           openai_api_key=self.api_key)
         self.session = session
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.start_loop, args=(self.loop,))
@@ -46,6 +52,11 @@ class CrewAiStartService:
             await self.append_message(task_id, task_name, task_output, role=MessageRole.ASSISTANT)
 
         return async_callback
+
+    def run_coroutine_in_thread(self, coro):
+        """Run a coroutine in the thread's event loop and wait for the result."""
+        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        return future.result()
 
     async def start(self, employed_crew_id, chat_id, cycle_id):
         self.cycle_id = cycle_id
@@ -144,5 +155,11 @@ class CrewAiStartService:
         metrics = crew_instance.usage_metrics
         logger.info(f"metric : {metrics}")
         if result:
-            await self.append_message(None, "system", "metrics: " + str(metrics), role=MessageRole.SYSTEM)
+            logger.info("result : %s", result)
+            self.run_coroutine_in_thread(
+                self.append_message(None, "system", "metrics: " + str(metrics), role=MessageRole.SYSTEM)
+            )
+            self.run_coroutine_in_thread(
+                crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)
+            )
         return result

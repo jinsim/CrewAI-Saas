@@ -96,6 +96,7 @@ async def verify_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
             status_code=404,
             content={"message": "Crew has no API Key"},
         )
+
     return JSONResponse(
         status_code=200,
         content={"message": "Successfully Verified Crew"},
