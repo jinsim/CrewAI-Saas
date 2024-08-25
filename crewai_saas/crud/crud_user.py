@@ -112,6 +112,14 @@ class CRUDApiKey(CRUDBase[ApiKey, ApiKeyCreate, ApiKeyUpdate]):
 
         return [self.model(**item) for item in got][0]
 
+    async def get_by_user_id_and_llm_provider_id(self, db: AsyncClient, *, user_id: int, llm_provider_id: int) -> ApiKey | None:
+        data, count = await db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("llm_provider_id", llm_provider_id).execute()
+        _, got = data
+        if not got:
+            return None
+
+        decrypted_api_key = utils.decrypt(self.model(**got[0]).value)
+        return self.model(**got[0]).copy(update={"value": decrypted_api_key})
 
     async def delete(self, db: AsyncClient, *, id: int) -> ApiKey:
         return await super().delete(db, id=id)
@@ -120,10 +128,14 @@ class CRUDApiKey(CRUDBase[ApiKey, ApiKeyCreate, ApiKeyUpdate]):
         provider_id_response = await db.table("llm").select("llm_provider_id").eq("id", llm_id).execute()
         provider_id = provider_id_response.data[0]["llm_provider_id"]
 
-        data, count = await db.table(self.model.table_name).select("*").eq("user_id", user_id).eq(
-            "llm_provider_id", provider_id).execute()
+        data, count = await db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("llm_provider_id",
+                                                                                                  provider_id).execute()
         _, got = data
-        return self.model(**got[0]) if got else None
+        if not got:
+            return None
+
+        decrypted_api_key = utils.decrypt(self.model(**got[0]).value)
+        return self.model(**got[0]).copy(update={"value": decrypted_api_key})
 
 
 

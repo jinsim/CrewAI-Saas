@@ -82,7 +82,6 @@ class CrewAiStartService:
                 raise Exception("API key not found.")
             self.api_key = api_key.value
 
-
         agents = await crud.agent.get_all_active_by_crew_id(self.session, crew.id)
         if not agents:
             logger.error(f"Agents not found for crew_id: {crew.id}")
@@ -114,7 +113,6 @@ class CrewAiStartService:
                 max_iter=10
             )
 
-
         agent_dict = {agent.id: await get_agent(agent) for agent in agents}
 
         tasks = await crud.task.get_all_active_by_crew_id(self.session, crew.id)
@@ -137,7 +135,6 @@ class CrewAiStartService:
                     self.create_callback(task.id, task.name, task_output)(), self.loop
                 ).result()
             )
-
         for task_id in crew.task_ids:
             task = await crud.task.get_active(self.session, id=task_id)
             if task:
