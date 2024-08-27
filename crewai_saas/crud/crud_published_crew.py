@@ -6,7 +6,9 @@ from crewai_saas.model import PublishedCrew, PublishedTask, PublishedAgent, Publ
 
 
 class CRDPublishedCrew(CRDBase[PublishedCrew, PublishedCrewCreate]):
-    pass
+    async def get_active_by_crew_id_latest(self, db: AsyncClient, *, crew_id: int) -> PublishedCrew:
+        query = db.table(self.model.table_name).select("*").eq("crew_id", crew_id).eq("is_deleted", False).order("id", desc=True).limit(1)
+        return await self._execute_single_query(query)
 class CRDPublishedTask(CRDBase[PublishedTask, PublishedTaskCreate]):
     pass
 
