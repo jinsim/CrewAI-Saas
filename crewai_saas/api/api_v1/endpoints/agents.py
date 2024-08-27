@@ -2,7 +2,8 @@ from fastapi import APIRouter, Path
 from typing import Annotated
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
-from crewai_saas.crud import agent, tool, task
+from crewai_saas.core.enum import CrewStatus
+from crewai_saas.crud import agent, tool, task, crew
 from crewai_saas.model import Agent, AgentCreate, AgentUpdate, Tool, AgentWithTool
 
 router = APIRouter()
@@ -30,7 +31,8 @@ async def read_agents_by_task_id(task_id: Annotated[int, Path(title="The ID of t
 @router.patch("/{agent_id}")
 async def update_agent(agent_id: Annotated[int, Path(title="The ID of the it to get")],
                        agent_in: AgentUpdate, session: SessionDep) -> Agent:
-    return await agent.update_exclude_none(session, obj_in=agent_in, id=agent_id)
+    ret = await agent.update_exclude_none(session, obj_in=agent_in, id=agent_id)
+    await crew.update_status(session, crew_id=agent_in.crew_id, status=CrewStatus.EDITING)
 
 @router.delete("/{agent_id}")
 async def delete_agent(agent_id: Annotated[int, Path(title="The ID of the it to get")],
