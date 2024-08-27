@@ -56,6 +56,25 @@ class ReadBase(Generic[ModelType]):
         query = db.table(self.model.table_name).select("*").eq("user_id", user_id).eq("is_deleted", False)
         return await self._execute_multi_query(query)
 
+class CRDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType]):
+    async def create(self, db: AsyncClient, *, obj_in: CreateSchemaType) -> ModelType:
+        data, _ = await db.table(self.model.table_name).insert(obj_in.model_dump()).execute()
+        _, created = data
+        return self.model(**created[0])
+
+    async def delete(self, db: AsyncClient, *, id: int) -> ModelType:
+        data, _ = await db.table(self.model.table_name).delete().eq("id", id).execute()
+        _, deleted = data
+        return self.model(**deleted[0])
+
+    async def soft_delete(self, db: AsyncClient, *, id: int) -> ModelType:
+        obj_in: DeleteSchemaType = DeleteBase(id=id)
+        data, _ = await db.table(self.model.table_name).update(obj_in.model_dump()).eq("id", obj_in.id).execute()
+        _, updated = data
+        try:
+            return self.model(**updated[0])
+        except IndexError:
+            raise ObjectNotFoundException(id)
 
 class CRUDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def create(self, db: AsyncClient, *, obj_in: CreateSchemaType) -> ModelType:
