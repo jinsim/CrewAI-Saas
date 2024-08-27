@@ -80,7 +80,7 @@ async def get_db() -> AsyncClient:
         yield client
 
     except Exception as e:
-        logging.error(e)
+        logging.error(e, exc_info=True, stack_info=True)
         raise HTTPException(
             status_code=400, detail="Unknown error occurred"
         )

@@ -21,7 +21,6 @@ class PublishedCrewCreate(CreateBase):
     updated_at: str
     llm_id: Optional[int]
     tags: Optional[List[str]] = None
-    task_ids: Optional[List[int]] = None
     pre_questions: Optional[List[str]] = None
     user_id: Optional[int]
     class Config:
@@ -44,7 +43,7 @@ class PublishedCrew(ResponseBase):
     is_deleted: bool
     llm_id: Optional[int]
     tags: Optional[List[str]]
-    task_ids: Optional[List[int]]
+    published_task_ids: Optional[List[int]]
     pre_questions: Optional[List[str]]
     user_id: Optional[int]
 
@@ -70,7 +69,7 @@ class PublishedCrewInDB(InDBBase):
     is_deleted: bool = False
     llm_id: Optional[int]
     tags: Optional[List[str]]
-    task_ids: Optional[List[int]]
+    published_task_ids: Optional[List[int]]
     pre_questions: Optional[List[str]]
     user_id: Optional[int] = None
     class Config:

@@ -286,8 +286,6 @@ async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of t
         return validation_result
     new_cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id))
     result = await crewAiService.CrewAiStartService(session).start(employed_crew_id=employed_crew_id, chat_id=chat_id, cycle_id=new_cycle.id)
-    print("result")
-    print(result)
     # await crud.cycle.update_status(session, cycle_id=new_cycle.id, status=CycleStatus.FINISHED)
     # return Response(content="Success")
     return result
