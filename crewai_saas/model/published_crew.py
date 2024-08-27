@@ -7,6 +7,7 @@ from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBas
 from crewai_saas.model.crew import Tool
 
 class PublishedCrewCreate(CreateBase):
+    crew_id: int
     name: str
     description: Optional[str] = None
     greeting: Optional[str] = None
@@ -28,6 +29,7 @@ class PublishedCrewCreate(CreateBase):
         arbitrary_types_allowed = True
 
 class PublishedCrew(ResponseBase):
+    crew_id: int
     name: str
     description: Optional[str]
     greeting: Optional[str]
@@ -53,6 +55,7 @@ class PublishedCrew(ResponseBase):
 
 
 class PublishedCrewInDB(InDBBase):
+    crew_id: int
     name: str
     description: Optional[str]
     greeting: Optional[str]

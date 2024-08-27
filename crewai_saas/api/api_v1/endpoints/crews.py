@@ -125,14 +125,14 @@ async def delete_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
 
 @router.post("/{crew_id}/publish")
 async def publish_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                      session: SessionDep) -> Response:
-    #                   user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Response:
+                      session: SessionDep,
+                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Response:
     get_crew = await crew.get_active(session, id=crew_id)
-    # # validation_result = await validate(session, get_crew.user_id, user_email)
-    # # if isinstance(validation_result, JSONResponse):
-    # #     return validation_result
+    validation_result = await validate(session, get_crew.user_id, user_email)
+    if isinstance(validation_result, JSONResponse):
+        return validation_result
     get_agents = await crud.agent.get_all_active_by_crew_id(session, crew_id=crew_id)
-    publish_crew_entity = await published_crew.create(session, obj_in=PublishedCrewCreate(**get_crew.dict()))
+    publish_crew_entity = await published_crew.create(session, obj_in=PublishedCrewCreate(**get_crew.dict(), crew_id=crew_id))
 
     agent_dict = {}
     for agent_entity in get_agents:
