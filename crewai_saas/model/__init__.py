@@ -13,5 +13,4 @@ from .crew import Crew, CrewCreate, CrewUpdate, CrewInDB, Task, TaskCreate, Task
     TaskContextInDB, TaskWithContext, AgentWithTool, CrewWithAll
 
 from .published_crew import PublishedCrew, PublishedCrewCreate, PublishedCrewInDB, \
-    PublishedCrewWithAll, PublishedTask, PublishedTaskCreate, PublishedTaskInDB, \
-    PublishedAgent, PublishedAgentCreate, PublishedAgentInDB
+    PublishedCrewWithAll, PublishedTask, PublishedTaskCreate, PublishedTaskInDB, PublishedAgent, PublishedAgentCreate, PublishedAgentInDB, PublishedAgentWithTool
