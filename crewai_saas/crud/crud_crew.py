@@ -1,5 +1,6 @@
 from supabase_py_async import AsyncClient
 
+from typing import List
 from crewai_saas.core.enum import CrewStatus
 from crewai_saas.crud.base import CRUDBase, UpdateSchemaType
 from crewai_saas.model import Crew, Task, Agent, Tool, TaskContext, CrewCreate, CrewUpdate, TaskCreate, TaskUpdate, AgentCreate, AgentUpdate, TaskContextCreate, TaskContextUpdate, ToolCreate, ToolUpdate
@@ -23,9 +24,6 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
                                                                                                   False).order("updated_at", desc=True).execute()
         _, got = data
         return [self.model(**item) for item in got]
-
-    from supabase_py_async import AsyncClient
-    from typing import List
 
     async def search_crews(self, db: AsyncClient, *, search_string: str) -> List[Crew]:
         filter_conditions = f"name.ilike.%{search_string}%,description.ilike.%{search_string}%"
@@ -71,6 +69,11 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
     async def update(self, db: AsyncClient, *, obj_in: UpdateSchemaType, id: int) -> Crew:
         update_data = {k: v for k, v in obj_in.model_dump().items() if v is not None}
         data, _ = await db.table(self.model.table_name).update(update_data).eq("id", id).execute()
+        _, updated = data
+        return self.model(**updated[0])
+
+    async def update_status(self, db: AsyncClient, *, crew_id: int, status: CrewStatus) -> Crew:
+        data, _ = await db.table(self.model.table_name).update({"status": status.value}).eq("id", crew_id).execute()
         _, updated = data
         return self.model(**updated[0])
 

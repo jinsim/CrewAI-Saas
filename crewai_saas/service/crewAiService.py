@@ -75,6 +75,11 @@ class CrewAiStartService:
             logger.error(f"Crew not found. crew_id: {crew_id}")
             raise Exception("Crew not found.")
 
+        published_crew = await crud.published_crew.get_active_by_crew_id_latest(self.session, crew_id=crew.id)
+        if not published_crew:
+            logger.error(f"Published crew not found. crew_id: {crew.id}")
+            raise Exception("Published crew not found.")
+
         if employed_crew.is_owner:
             api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=employed_crew.user_id, llm_id=crew.llm_id)
             if not api_key:
@@ -82,9 +87,9 @@ class CrewAiStartService:
                 raise Exception("API key not found.")
             self.api_key = api_key.value
 
-        agents = await crud.agent.get_all_active_by_crew_id(self.session, crew.id)
+        agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session, published_crew_id=published_crew.id)
         if not agents:
-            logger.error(f"Agents not found for crew_id: {crew.id}")
+            logger.error(f"Agents not found for published_crew_id: {published_crew.id}")
             raise Exception("Agents not found.")
 
         conversation = "\n\nConversation History:\n"
@@ -93,9 +98,6 @@ class CrewAiStartService:
             messages_in_cycle = await crud.message.get_all_by_cycle_id(self.session, cycle_id=cycle.id)
             for message in messages_in_cycle:
                 conversation += f'{{"role": "{message.role}", "message": "{message.content}"}}\n'
-
-
-        logger.info(f"Conversation: {conversation}")
 
         async def get_agent(agent):
             tools = []
@@ -114,29 +116,29 @@ class CrewAiStartService:
             )
 
         agent_dict = {agent.id: await get_agent(agent) for agent in agents}
-
-        tasks = await crud.task.get_all_active_by_crew_id(self.session, crew.id)
+        print(agent_dict)
+        tasks = await crud.published_task.get_all_active_by_published_crew_id(self.session, published_crew_id=published_crew.id)
         if not tasks:
-            logger.error(f"Tasks not found for crew_id: {crew.id}")
+            logger.error(f"Tasks not found for published_crew_id: {published_crew.id}")
             raise Exception("Tasks not found.")
 
         task_dict = {}
 
         async def get_task(task):
             context_tasks = []
-            if task.context_task_ids:
-                context_tasks = [task_dict.get(task_id) for task_id in task.context_task_ids]
+            if task.context_published_task_ids:
+                context_tasks = [task_dict.get(task_id) for task_id in task.context_published_task_ids]
             return Task(
                 description=dedent(task.description+conversation),
                 expected_output=dedent(task.expected_output),
-                agent=agent_dict[task.agent_id],
+                agent=agent_dict[task.published_agent_id],
                 context=context_tasks,
                 callback=lambda task_output: asyncio.run_coroutine_threadsafe(
                     self.create_callback(task.id, task.name, task_output)(), self.loop
                 ).result()
             )
-        for task_id in crew.task_ids:
-            task = await crud.task.get_active(self.session, id=task_id)
+        for task_id in published_crew.published_task_ids:
+            task = await crud.published_task.get_active(self.session, id=task_id)
             if task:
                 task_dict[task_id] = await get_task(task)
 

@@ -31,11 +31,10 @@ async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: Se
     if isinstance(validation_result, JSONResponse):
         return validation_result
     crew = await crud.crew.get_active(session, id=employed_crew_in.crew_id)
-    if crew.status == CrewStatus.EDITING:
-        raise Exception("Crew is not published")
     crew = await crud.crew.plus_usage(session, id=employed_crew_in.crew_id, usage=crew.usage)
     employed_crew = await crud.employed_crew.create(session, obj_in=employed_crew_in)
-    return EmployedCrewWithCrew(**employed_crew.dict(), crew=crew)
+    published_crew = await crud.published_crew.get_active_by_crew_id_latest(session, crew_id=employed_crew.crew_id)
+    return EmployedCrewWithCrew(**employed_crew.dict(), published_crew=published_crew)
 
 @router.put("/{employed_crew_id}")
 async def update_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
@@ -67,8 +66,11 @@ async def read_employed_crews_by_user(session: SessionDep
     results = []
 
     for employed_crew in employed_crews:
-        crew = await crud.crew.get_active(session, id=employed_crew.crew_id)
-        results.append(EmployedCrewWithCrew(**employed_crew.dict(), crew=crew))
+        published_crew = await crud.published_crew.get_active_by_crew_id_latest(session, crew_id=employed_crew.crew_id)
+        if published_crew:
+            results.append(EmployedCrewWithCrew(**employed_crew.dict(), published_crew=published_crew))
+        else:
+            logging.error(f"Published crew not found. employed_crew_id: {employed_crew.id}")
 
     return results
 
@@ -77,8 +79,8 @@ async def read_employed_crews_by_user(session: SessionDep
 async def read_employed_crew_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep) -> EmployedCrewWithCrew | None:
 
     employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    crew = await crud.crew.get_active(session, id=employed_crew.crew_id)
-    return EmployedCrewWithCrew(**employed_crew.dict(), crew=crew)
+    published_crew = await crud.published_crew.get_active_by_crew_id_latest(session, crew_id=employed_crew.crew_id)
+    return EmployedCrewWithCrew(**employed_crew.dict(), published_crew=published_crew)
 
 
 @router.delete("/{employed_crew_id}")
@@ -284,8 +286,6 @@ async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of t
         return validation_result
     new_cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id))
     result = await crewAiService.CrewAiStartService(session).start(employed_crew_id=employed_crew_id, chat_id=chat_id, cycle_id=new_cycle.id)
-    print("result")
-    print(result)
     # await crud.cycle.update_status(session, cycle_id=new_cycle.id, status=CycleStatus.FINISHED)
     # return Response(content="Success")
     return result

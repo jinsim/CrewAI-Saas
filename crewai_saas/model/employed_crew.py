@@ -4,7 +4,7 @@ from crewai_saas.core.enum import CycleStatus, MessageRole
 from pydantic import BaseModel
 
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
-from crewai_saas.model.crew import Crew
+from crewai_saas.model.published_crew import PublishedCrew
 
 
 class EmployedCrewCreate(CreateBase):
@@ -31,7 +31,7 @@ class EmployedCrewInDB(InDBBase):
     is_owner: bool
 
 class EmployedCrewWithCrew(EmployedCrew):
-    crew: Crew
+    published_crew: PublishedCrew
 
 class ChatCreate(CreateBase):
     employed_crew_id: int
