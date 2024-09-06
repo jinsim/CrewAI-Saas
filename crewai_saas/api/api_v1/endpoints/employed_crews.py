@@ -198,48 +198,21 @@ async def delete_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to 
         return validation_result
     return await crud.chat.soft_delete(session, id=chat_id)
 
-
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles")
 async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                      chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                      session: SessionDep
-                    ,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Cycle]:
-    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
-    if isinstance(validation_result, JSONResponse):
-        return validation_result
-    return await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
-
-@router.get("/{employed_crew_id}/chats/{chat_id}/cycles")
-async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                      chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                      session: SessionDep,
-                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[CycleWithMessage]:
-    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
-    if isinstance(validation_result, JSONResponse):
-        return validation_result
-    cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
-    cycle_with_messages = []
-    for cycle in cycles:
-        messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
-        message_dtos = [
-            MessageSimple(**message.dict())
-            for message in messages
-        ]
-        cycle_with_messages.append(CycleWithMessage(**cycle.dict(), messages=message_dtos))
-    return cycle_with_messages
-
-@router.get("/{employed_crew_id}/chats/{chat_id}/cycles/finished")
-async def read_finished_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                                chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                                session: SessionDep,
-                               user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[CycleWithMessage]:
+                               user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> JSONResponse:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
     validation_result = await validate(session, get_employed_crew.user_id, user_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
-    cycles = await crud.cycle.get_all_finished_by_chat_id(session, chat_id=chat_id)
+    if get_employed_crew.is_owner:
+        cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
+        is_owner = True
+    else:
+        cycles = await crud.cycle.get_all_finished_and_started_by_chat_id(session, chat_id=chat_id)
+        is_owner = False
     cycle_with_messages = []
     for cycle in cycles:
         messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
@@ -247,8 +220,12 @@ async def read_finished_cycles(employed_crew_id: Annotated[int, Path(title="The 
             MessageSimple(**message.dict())
             for message in messages
         ]
-        cycle_with_messages.append(CycleWithMessage(**cycle.dict(), messages=message_dtos))
-    return cycle_with_messages
+        cycle_with_messages.append((CycleWithMessage(**cycle.dict(), messages=message_dtos)).dict())
+    response_data = {
+        "cycles": cycle_with_messages,
+        "is_owned": is_owner
+    }
+    return JSONResponse(content=response_data)
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles/{cycle_id}")
 async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
