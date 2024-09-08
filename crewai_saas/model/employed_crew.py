@@ -168,4 +168,5 @@ class ChatWithCycle(Chat):
     cycle: CycleWithMessage
 
 class ChatWithCycleList(Chat):
+    is_owner: bool
     cycles: list[CycleWithMessage]

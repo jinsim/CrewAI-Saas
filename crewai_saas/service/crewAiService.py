@@ -142,13 +142,14 @@ class CrewAiStartService:
             if task:
                 task_dict[task_id] = await get_task(task)
 
-        logger.info(f"agent_dict : {agent_dict}")
-        logger.info(f"task_dict : {task_dict}")
+        # logger.info(f"agent_dict : {agent_dict}")
+        # logger.info(f"task_dict : {task_dict}")
         crew_instance = Crew(
             agents=list(agent_dict.values()),
             tasks=list(task_dict.values()),
             verbose=True,
         )
+        logger.info(crew_instance)
 
         result = crew_instance.kickoff()
         metrics = crew_instance.usage_metrics

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from typing import Annotated
 from fastapi import  Path, Depends
@@ -112,8 +114,10 @@ async def validate(session, user_id: int, user_email: str):
     try:
         await user.validate_user(session, user_id, user_email)
     except HTTPException as e:
+        logging.warning(f"Validation failed: {e}, user_id: {user_id}, user_email: {user_email}")
         return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
     except Exception as e:
+        logging.warning(f"Validation failed: {e}, user_id: {user_id}, user_email: {user_email}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
     return True
 
