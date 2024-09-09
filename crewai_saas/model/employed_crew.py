@@ -132,14 +132,14 @@ class CycleUpdate(UpdateBase):
 
 class CycleUpdateStatus(UpdateBase):
     status: CycleStatus
-    execution_id: Optional[str] = None
+    execution_id: Optional[str]
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True
 
 class Cycle(ResponseBase):
     status: CycleStatus
-    execution_id: Optional[str] = None
+    execution_id: Optional[str]
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]
@@ -152,7 +152,7 @@ class Cycle(ResponseBase):
 
 class CycleInDB(InDBBase):
     status: CycleStatus
-    execution_id: Optional[str] = None
+    execution_id: Optional[str]
     cost: Optional[float]
     price: Optional[float]
     total_token: Optional[int]

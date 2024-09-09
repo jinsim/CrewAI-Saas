@@ -6,3 +6,4 @@ class CycleStatus(Enum):
     ERROR = "ERROR"
     FINISHED = "FINISHED"
     CANCELLED = "CANCELLED"
+    STOPPED = "STOPPED"
