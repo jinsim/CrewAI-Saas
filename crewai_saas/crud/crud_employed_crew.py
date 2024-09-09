@@ -2,10 +2,8 @@ from typing import Optional, List
 
 from supabase_py_async import AsyncClient
 
-from crewai_saas.core.enum import CycleStatus
 from crewai_saas.crud.base import CRUDBase, ReadBase
 from crewai_saas.model import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate
-from crewai_saas.model.auth import UserIn
 from crewai_saas.core.enum.CycleStatus import CycleStatus
 
 class CRUDEmployedCrew(CRUDBase[EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate]):
@@ -65,6 +63,11 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
+    async def get_all_finished_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
+        data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).eq("status", CycleStatus.FINISHED.value).order("id", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
     async def get_all_finished_and_started_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
         data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).in_("status", [CycleStatus.FINISHED.value, CycleStatus.STARTED.value]).order("id", desc=True).execute()
         _, got = data
@@ -83,6 +86,12 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
 
     async def update_status(self, db: AsyncClient, *, cycle_id: int, status: CycleStatus) -> Cycle:
         data, count = await db.table(self.model.table_name).update({"status": status.value}).eq("id", cycle_id).execute()
+        _, got = data
+        return self.model(**got[0])
+
+
+    async def update_execution_id(self, db: AsyncClient, *, cycle_id: int, execution_id: str) -> Cycle:
+        data, count = await db.table(self.model.table_name).update({"execution_id": execution_id}).eq("id", cycle_id).execute()
         _, got = data
         return self.model(**got[0])
 

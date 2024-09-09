@@ -1,4 +1,5 @@
 import asyncio
+import ctypes
 import os
 import logging
 import threading
@@ -34,6 +35,8 @@ class CrewAiStartService:
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.start_loop, args=(self.loop,))
         self.thread.start()
+        self.thread_id = threading.get_ident()
+        self.stop_requested = threading.Event() # 종료 플래그. start 메소드의 주요 루프에서 이 플래그를 확인
 
     def start_loop(self, loop):
         asyncio.set_event_loop(loop)
@@ -61,7 +64,8 @@ class CrewAiStartService:
     async def start(self, employed_crew_id, chat_id, cycle_id):
         self.cycle_id = cycle_id
         self.chat_id = chat_id
-        logger.info(f"Starting Crew AI Service for employed_crew_id: {employed_crew_id} chat_id: {chat_id}")
+        await crud.cycle.update_execution_id(self.session, cycle_id=self.cycle_id, execution_id=self.thread_id)
+        logger.info(f"Starting Crew AI Service for employed_crew_id: {employed_crew_id}, chat_id: {self.chat_id}, cycle_id: {self.cycle_id}, execution_id: {self.thread_id}")
 
         employed_crew = await crud.employed_crew.get_active(self.session, id=employed_crew_id)
         if not employed_crew:
@@ -151,7 +155,12 @@ class CrewAiStartService:
         )
         logger.info(crew_instance)
 
-        result = crew_instance.kickoff()
+        if not self.stop_requested.is_set():
+            result = crew_instance.kickoff()
+        else:
+            logger.error(f"Operation stopped before kickoff. cycle_id: {self.cycle_id}")
+            raise Exception("Operation stopped before kickoff")
+
         metrics = crew_instance.usage_metrics
         logger.info(f"metric : {metrics}")
         if result:
@@ -159,7 +168,43 @@ class CrewAiStartService:
             self.run_coroutine_in_thread(
                 self.append_message(None, "system", "metrics: " + str(metrics), role=MessageRole.SYSTEM)
             )
-            self.run_coroutine_in_thread(
-                crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)
-            )
+            if self.stop_requested.is_set():
+                logger.error(f"Operation stopped after kickoff. cycle_id: {self.cycle_id}")
+                await crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.STOPPED)
+            else:
+                self.run_coroutine_in_thread(
+                    crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)
+                )
         return result
+
+    async def stop(self, cycle_id):
+        cycle = await crud.cycle.get(self.session, id=cycle_id)
+        if cycle.status == CycleStatus.STARTED:
+            self.stop_requested.set()
+
+            # 안전한 종료 대기
+            wait_time = 0
+            while wait_time < 10:  # 최대 10초 대기
+                if cycle.status != CycleStatus.STARTED:
+                    break
+                await asyncio.sleep(1)
+                wait_time += 1
+
+            # 안전한 종료 실패 시 강제 종료
+            if cycle.status == CycleStatus.STARTED:
+                thread_id = cycle.thread_id
+                if thread_id:
+                    for thread in threading.enumerate():
+                        if thread.ident == thread_id:
+                            # 강제 종료 (주의: 이 방법은 위험할 수 있음)
+                            ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id),
+                                                                       ctypes.py_object(SystemExit))
+                            break
+
+            await crud.cycle.update_status(self.session, cycle_id=cycle_id, status=CycleStatus.STOPPED)
+            await self.cleanup_resources()
+
+    async def cleanup_resources(self):
+        logger.info(f"Cleaning up resources for cycle: {self.cycle_id}")
+        await self.session.close()
+        logging.shutdown()
