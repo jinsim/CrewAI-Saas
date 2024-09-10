@@ -179,3 +179,14 @@ class CrewAiStartService:
             self.loop.stop()
             logger.info(f"Loop stopped. cycle_id: {self.cycle_id}")
             raise Exception("Cycle stopped!!!!!")
+        
+    async def stop(self, cycle_id):
+        success = False
+        msg = "cycle 의 status 가 STARTED 일때만 stop 가능합니다."
+        cycle = await crud.cycle.get(self.session, id=cycle_id)
+        logger.info(f"Stopping Crew AI Service for cycle: {cycle_id}, status: {cycle.status}")
+        if cycle.status == CycleStatus.STARTED.value:
+            success = True
+            msg = "cycle 의 status 가 STOPPED 로 변경합니다."
+            await crud.cycle.update_status(self.session, cycle_id=cycle_id, status=CycleStatus.STOPPED)
+        return {"cycle id": cycle_id, "success": success, "msg": msg}
