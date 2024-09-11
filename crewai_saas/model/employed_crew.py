@@ -132,7 +132,6 @@ class CycleUpdate(UpdateBase):
 
 class CycleUpdateStatus(UpdateBase):
     status: CycleStatus
-    execution_id: Optional[str]
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True

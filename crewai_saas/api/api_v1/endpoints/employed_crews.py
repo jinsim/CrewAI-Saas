@@ -288,14 +288,14 @@ async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of t
 async def stop_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                     chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                     session: SessionDep,
-                    user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Response:
+                    user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> JSONResponse:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
     validation_result = await validate(session, get_employed_crew.user_id, user_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     cycle = await crud.cycle.get_latest_by_chat_id(session, chat_id=chat_id)
+    logging.info(f"Stopping cycle: {cycle.id}")
     if cycle.status == CycleStatus.FINISHED:
         return Response(content="Cycle already finished")
     result = await crewAiService.CrewAiStartService(session).stop(cycle_id=cycle.id)
-    return result
-
+    return JSONResponse(content=result)
