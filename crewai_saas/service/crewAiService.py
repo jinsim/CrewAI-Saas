@@ -6,7 +6,7 @@ import threading
 from textwrap import dedent
 from crewai import Agent, Task, Crew
 from crewai_saas import crud
-from crewai_saas.core.enum import CycleStatus, MessageRole
+from crewai_saas.core.enum import CycleStatus, MessageRole, MessageType
 from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll, CycleCreate, MessageCreate, ChatCreate
 from crewai_saas.tool import function_map
 
@@ -42,18 +42,43 @@ class CrewAiStartService:
         loop.run_forever()
         logger.info("Treading loop end")
 
-    async def append_message(self, task_id, task_name, task_output, role):
+    async def append_message(self, content, role):
         await self.check_cycle_status()
-        logger.info("Appending message for cycle: %s task: %s task_output: %s", self.cycle_id, task_name, task_output)
+        logger.info("Appending message for cycle: %s content: %s", self.cycle_id, content)
 
         message_response = await crud.message.create(
             self.session,
-            obj_in=MessageCreate(content=task_name + " : " + str(task_output), task_id=task_id, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id)
+            obj_in=MessageCreate(content=content, task_id=None, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id, type=None)
         )
 
-    def create_callback(self, task_id, task_name, task_output):
+    async def append_task_message(self, task_id, task_name, task_output, role, type):
+        await self.check_cycle_status()
+        logger.info("Appending task message for cycle: %s task: %s task_output: %s", self.cycle_id, task_name, task_output)
+
+        message_response = await crud.message.create(
+            self.session,
+            obj_in=MessageCreate(content="[task] " + task_name + " : " + str(task_output), task_id=task_id, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id, type=type)
+        )
+
+    async def append_agent_message(self, agent_id, agent_name, agent_output, role, type):
+        await self.check_cycle_status()
+        logger.info("Appending agent message for cycle: %s agent: %s agent_output: %s", self.cycle_id, agent_name, agent_output)
+
+        message_response = await crud.message.create(
+            self.session,
+            obj_in=MessageCreate(content="[agent] " + agent_name + " : " + str(agent_output), agent_id=agent_id, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id, type=type)
+        )
+
+
+    def create_task_callback(self, task_id, task_name, task_output):
         async def async_callback():
-            await self.append_message(task_id, task_name, task_output, role=MessageRole.ASSISTANT)
+            await self.append_task_message(task_id, task_name, task_output, role=MessageRole.ASSISTANT, type=MessageType.TASK)
+
+        return async_callback
+
+    def create_agent_callback(self, agent_id, agent_name, agent_output):
+        async def async_callback():
+            await self.append_agent_message(agent_id, agent_name, agent_output, role=MessageRole.ASSISTANT, type=MessageType.AGENT)
 
         return async_callback
 
@@ -117,7 +142,10 @@ class CrewAiStartService:
                 tools=tools,
                 verbose=True,
                 llm=self.llm,
-                max_iter=3
+                max_iter=3,
+                step_callback=lambda agent_output: asyncio.run_coroutine_threadsafe(
+                    self.create_agent_callback(agent.id, agent.name, agent_output)(), self.loop
+                ).result()
             )
 
         agent_dict = {agent.id: await get_agent(agent) for agent in agents}
@@ -139,7 +167,7 @@ class CrewAiStartService:
                 agent=agent_dict[task.published_agent_id],
                 context=context_tasks,
                 callback=lambda task_output: asyncio.run_coroutine_threadsafe(
-                    self.create_callback(task.id, task.name, task_output)(), self.loop
+                    self.create_task_callback(task.id, task.name, task_output)(), self.loop
                 ).result()
             )
         for task_id in published_crew.published_task_ids:
@@ -165,7 +193,7 @@ class CrewAiStartService:
         if result:
             logger.info("result : %s", result)
             self.run_coroutine_in_thread(
-                self.append_message(None, "system", "metrics: " + str(metrics), role=MessageRole.SYSTEM)
+                self.append_message("[system] system : metrics: " + str(metrics), role=MessageRole.SYSTEM)
             )
             self.run_coroutine_in_thread(
                 crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)

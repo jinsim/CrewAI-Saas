@@ -1,6 +1,6 @@
 from typing import ClassVar
 from typing import Optional
-from crewai_saas.core.enum import CycleStatus, MessageRole
+from crewai_saas.core.enum import CycleStatus, MessageRole, MessageType
 from pydantic import BaseModel
 
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
@@ -61,6 +61,8 @@ class MessageCreate(CreateBase):
     cycle_id: int
     role: MessageRole
     chat_id: int
+    agent_id: Optional[int] = None
+    type: Optional[MessageType] = None
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True
@@ -83,6 +85,8 @@ class Message(ResponseBase):
     cycle_id: int
     role: MessageRole
     chat_id: int
+    agent_id: Optional[int]
+    type: Optional[MessageType]
 
     table_name: ClassVar[str] = "message"
 
@@ -99,6 +103,8 @@ class MessageInDB(InDBBase):
     cycle_id: int
     role: MessageRole
     chat_id: int
+    agent_id: int
+    type: MessageType
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True
