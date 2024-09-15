@@ -109,13 +109,33 @@ class CrewAiStartService:
         if not published_crew:
             logger.error(f"Published crew not found. crew_id: {crew.id}")
             raise Exception("Published crew not found.")
+        logger.info(f"Published crew: {published_crew}")
 
         if employed_crew.is_owner:
-            api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=employed_crew.user_id, llm_id=crew.llm_id)
+            api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=employed_crew.user_id,
+                                                                       llm_id=crew.llm_id)
             if not api_key:
                 logger.error(f"API key not found for user_id: {employed_crew.user_id}, llm_id: {crew.llm_id}")
                 raise Exception("API key not found.")
             self.api_key = api_key.value
+
+            llm = await crud.llm.get(self.session, id=published_crew.llm_id)
+            if not llm:
+                logger.error(f"LLM not found. llm_id: {published_crew.llm_id}")
+                raise Exception("LLM not found.")
+            if llm.llm_provider_id == 1:
+                self.llm = ChatOpenAI(model=llm.name,
+                                      verbose=True,
+                                      temperature=0,
+                                      openai_api_key=self.api_key)
+            elif llm.llm_provider_id == 2:
+                self.llm = ChatGoogleGenerativeAI(model=llm.name,
+                                                  verbose=True,
+                                                  temperature=0,
+                                                  google_api_key=self.api_key)
+            else:
+                logger.error(f"LLM provider not found. llm_provider_id: {llm.llm_provider_id}")
+                raise Exception("LLM provider not found.")
 
         agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session, published_crew_id=published_crew.id)
         if not agents:
