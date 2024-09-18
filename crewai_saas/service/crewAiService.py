@@ -1,13 +1,15 @@
-import asyncio
-import ctypes
 import os
+import asyncio
 import logging
 import threading
 from textwrap import dedent
+from typing import Dict, List, Any, Optional, Callable, Type
+from contextlib import asynccontextmanager
+
 from crewai import Agent, Task, Crew
 from crewai_saas import crud
 from crewai_saas.core.enum import CycleStatus, MessageRole, MessageType
-from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll, CycleCreate, MessageCreate, ChatCreate
+from crewai_saas.model import MessageCreate
 from crewai_saas.tool import function_map
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -19,184 +21,76 @@ logger = logging.getLogger(__name__)
 
 class CrewAiStartService:
     def __init__(self, session):
-        self.cycle_id = None
-        self.chat_id = None
-        # self.api_key = os.getenv("GOOGLE_API_KEY")
-        # self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
-        #                    verbose=True,
-        #                    temperature=0,
-        #                    google_api_key=self.api_key)
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.llm = ChatOpenAI(model="gpt-4o-mini",
-                           verbose=True,
-                           temperature=0,
-                           openai_api_key=self.api_key)
+        self.cycle_id: Optional[int] = None
+        self.chat_id: Optional[int] = None
+        self.api_key: Optional[str] = None
+        self.llm: Optional[Any] = None
         self.session = session
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.start_loop, args=(self.loop,))
         self.thread.start()
         self.thread_id = threading.get_ident()
 
-    def start_loop(self, loop):
+    def start_loop(self, loop: asyncio.AbstractEventLoop):
         asyncio.set_event_loop(loop)
         loop.run_forever()
-        logger.info("Treading loop end")
+        logger.info("Threading loop ended")
 
-    async def append_message(self, content, role):
+    async def append_message(self, content: str, role: MessageRole, task_id: Optional[int] = None,
+                             agent_id: Optional[int] = None, type: Optional[MessageType] = None):
         await self.check_cycle_status()
-        logger.info("Appending message for cycle: %s content: %s", self.cycle_id, content)
+        logger.info(f"Appending message for cycle: {self.cycle_id} content: {content}")
 
         message_response = await crud.message.create(
             self.session,
-            obj_in=MessageCreate(content=content, task_id=None, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id, type=None)
+            obj_in=MessageCreate(content=content, task_id=task_id, agent_id=agent_id,
+                                 role=role, chat_id=self.chat_id, cycle_id=self.cycle_id, type=type)
         )
 
-    async def append_task_message(self, task_id, task_name, task_output, role, type):
-        await self.check_cycle_status()
-        logger.info("Appending task message for cycle: %s task: %s task_output: %s", self.cycle_id, task_name, task_output)
-
-        message_response = await crud.message.create(
-            self.session,
-            obj_in=MessageCreate(content="[task] " + task_name + " : " + str(task_output), task_id=task_id, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id, type=type)
-        )
-
-    async def append_agent_message(self, agent_id, agent_name, agent_output, role, type):
-        await self.check_cycle_status()
-        logger.info("Appending agent message for cycle: %s agent: %s agent_output: %s", self.cycle_id, agent_name, agent_output)
-
-        message_response = await crud.message.create(
-            self.session,
-            obj_in=MessageCreate(content="[agent] " + agent_name + " : " + str(agent_output), agent_id=agent_id, role=role, chat_id=self.chat_id, cycle_id=self.cycle_id, type=type)
-        )
-
-
-    def create_task_callback(self, task_id, task_name, task_output):
-        async def async_callback():
-            await self.append_task_message(task_id, task_name, task_output, role=MessageRole.ASSISTANT, type=MessageType.TASK)
+    def create_task_callback(self, task_id: int, task_name: str):
+        async def async_callback(task_output: str):
+            await self.append_message(f"[task] {task_name} : {task_output}",
+                                      role=MessageRole.ASSISTANT, task_id=task_id, type=MessageType.TASK)
 
         return async_callback
 
-    def create_agent_callback(self, agent_id, agent_name, agent_output):
-        async def async_callback():
-            await self.append_agent_message(agent_id, agent_name, agent_output, role=MessageRole.ASSISTANT, type=MessageType.AGENT)
+    def create_agent_callback(self, agent_id: int, agent_name: str):
+        async def async_callback(agent_output: str):
+            await self.append_message(f"[agent] {agent_name} : {agent_output}",
+                                      role=MessageRole.ASSISTANT, agent_id=agent_id, type=MessageType.AGENT)
 
         return async_callback
 
-    def run_coroutine_in_thread(self, coro):
+    def run_coroutine_in_thread(self, coro: Any):
         """Run a coroutine in the thread's event loop and wait for the result."""
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
 
-    async def start(self, employed_crew_id, chat_id, cycle_id):
+    async def start(self, employed_crew_id: int, chat_id: int, cycle_id: int):
         self.cycle_id = cycle_id
         self.chat_id = chat_id
         await crud.cycle.update_execution_id(self.session, cycle_id=self.cycle_id, execution_id=self.thread_id)
-        logger.info(f"Starting Crew AI Service for employed_crew_id: {employed_crew_id}, chat_id: {self.chat_id}, cycle_id: {self.cycle_id}, execution_id: {self.thread_id}")
+        logger.info(
+            f"Starting Crew AI Service for employed_crew_id: {employed_crew_id}, chat_id: {self.chat_id}, cycle_id: {self.cycle_id}, execution_id: {self.thread_id}")
 
-        employed_crew = await crud.employed_crew.get_active(self.session, id=employed_crew_id)
-        if not employed_crew:
-            logger.error(f"Employed crew not found. employed_crew_id: {employed_crew_id}")
-            raise Exception("Employed crew not found.")
-
-        crew_id = employed_crew.crew_id
-
-        crew = await crud.crew.get_active(self.session, id=crew_id)
-        if not crew:
-            logger.error(f"Crew not found. crew_id: {crew_id}")
-            raise Exception("Crew not found.")
-
-        published_crew = await crud.published_crew.get_active_by_crew_id_latest(self.session, crew_id=crew.id)
-        if not published_crew:
-            logger.error(f"Published crew not found. crew_id: {crew.id}")
-            raise Exception("Published crew not found.")
+        employed_crew = await self.get_or_raise(crud.employed_crew.get_active, "id", employed_crew_id, "EmployedCrew")
+        crew = await self.get_or_raise(crud.crew.get_active, "id", employed_crew.crew_id, "Crew")
+        published_crew = await self.get_or_raise(crud.published_crew.get_active_by_crew_id_latest, "crew_id", crew.id,
+                                                 "PublishedCrew")
         logger.info(f"Published crew: {published_crew}")
 
-        if employed_crew.is_owner:
-            api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=employed_crew.user_id,
-                                                                       llm_id=crew.llm_id)
-            if not api_key:
-                logger.error(f"API key not found for user_id: {employed_crew.user_id}, llm_id: {crew.llm_id}")
-                raise Exception("API key not found.")
-            self.api_key = api_key.value
+        await self.setup_llm(employed_crew.user_id, crew.llm_id, published_crew.llm_id, employed_crew.is_owner)
 
-            llm = await crud.llm.get(self.session, id=published_crew.llm_id)
-            if not llm:
-                logger.error(f"LLM not found. llm_id: {published_crew.llm_id}")
-                raise Exception("LLM not found.")
-            if llm.llm_provider_id == 1:
-                self.llm = ChatOpenAI(model=llm.name,
-                                      verbose=True,
-                                      temperature=0,
-                                      openai_api_key=self.api_key)
-            elif llm.llm_provider_id == 2:
-                self.llm = ChatGoogleGenerativeAI(model=llm.name,
-                                                  verbose=True,
-                                                  temperature=0,
-                                                  google_api_key=self.api_key)
-            else:
-                logger.error(f"LLM provider not found. llm_provider_id: {llm.llm_provider_id}")
-                raise Exception("LLM provider not found.")
-
-        agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session, published_crew_id=published_crew.id)
+        agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session,
+                                                                                published_crew_id=published_crew.id)
         if not agents:
-            logger.error(f"Agents not found for published_crew_id: {published_crew.id}")
-            raise Exception("Agents not found.")
+            raise Exception(f"Agents not found for published_crew_id: {published_crew.id}")
 
-        conversation = "\n\nConversation History:\n"
-        cycles = await crud.cycle.get_all_finished_by_chat_id(self.session, chat_id=chat_id)
-        for cycle in cycles:
-            messages_in_cycle = await crud.message.get_all_by_cycle_id(self.session, cycle_id=cycle.id)
-            for message in messages_in_cycle:
-                conversation += f'{{"role": "{message.role}", "message": "{message.content}"}}\n'
+        conversation = await self.get_conversation_history(chat_id)
 
-        async def get_agent(agent):
-            tools = []
-            if agent.tool_ids:
-                tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
-                tools = [function_map[tool.key] for tool in tools_from_db]
+        agent_dict = {agent.id: await self.create_agent(agent, conversation) for agent in agents}
+        task_dict = await self.create_tasks(published_crew, agent_dict, conversation)
 
-            return Agent(
-                role=dedent(agent.role),
-                goal=dedent(agent.goal),
-                backstory=dedent(agent.backstory),
-                tools=tools,
-                verbose=True,
-                llm=self.llm,
-                max_iter=3,
-                step_callback=lambda agent_output: asyncio.run_coroutine_threadsafe(
-                    self.create_agent_callback(agent.id, agent.name, agent_output)(), self.loop
-                ).result()
-            )
-
-        agent_dict = {agent.id: await get_agent(agent) for agent in agents}
-        print(agent_dict)
-        tasks = await crud.published_task.get_all_active_by_published_crew_id(self.session, published_crew_id=published_crew.id)
-        if not tasks:
-            logger.error(f"Tasks not found for published_crew_id: {published_crew.id}")
-            raise Exception("Tasks not found.")
-
-        task_dict = {}
-
-        async def get_task(task):
-            context_tasks = []
-            if task.context_published_task_ids:
-                context_tasks = [task_dict.get(task_id) for task_id in task.context_published_task_ids]
-            return Task(
-                description=dedent(task.description+conversation),
-                expected_output=dedent(task.expected_output),
-                agent=agent_dict[task.published_agent_id],
-                context=context_tasks,
-                callback=lambda task_output: asyncio.run_coroutine_threadsafe(
-                    self.create_task_callback(task.id, task.name, task_output)(), self.loop
-                ).result()
-            )
-        for task_id in published_crew.published_task_ids:
-            task = await crud.published_task.get_active(self.session, id=task_id)
-            if task:
-                task_dict[task_id] = await get_task(task)
-
-        # logger.info(f"agent_dict : {agent_dict}")
-        # logger.info(f"task_dict : {task_dict}")
         crew_instance = Crew(
             agents=list(agent_dict.values()),
             tasks=list(task_dict.values()),
@@ -204,21 +98,108 @@ class CrewAiStartService:
         )
         logger.info(crew_instance)
 
-        await self.check_cycle_status()
-        result = await crew_instance.kickoff_async()
-        metrics = crew_instance.usage_metrics
-        logger.info(f"metric : {metrics}")
-        logger.info(f"result : {result}")
+        async with self.cycle_context():
+            result = await crew_instance.kickoff_async()
+            metrics = crew_instance.usage_metrics
+            logger.info(f"metric: {metrics}")
+            logger.info(f"result: {result}")
 
-        if result:
-            logger.info("result : %s", result)
-            self.run_coroutine_in_thread(
-                self.append_message("[system] system : metrics: " + str(metrics), role=MessageRole.SYSTEM)
-            )
-            self.run_coroutine_in_thread(
-                crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)
-            )
+            if result:
+                await self.process_result(result, metrics)
+
         return result
+
+    async def get_or_raise(self, getter: Callable, param_name: str, param_value: Any, entity_name: str):
+        result = await getter(self.session, **{param_name: param_value})
+        if not result:
+            logger.error(f"{entity_name} not found. {param_name}: {param_value}")
+            raise ValueError(f"{entity_name} not found.")
+        return result
+
+    async def setup_llm(self, user_id: int, llm_id: int, published_llm_id: int, is_owner: bool):
+        if is_owner:
+            api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=user_id, llm_id=llm_id)
+            if not api_key:
+                raise ValueError(f"API key not found for user_id: {user_id}, llm_id: {llm_id}")
+            self.api_key = api_key.value
+        else:
+            # Use default API keys for non-owners
+            self.api_key = os.getenv("OPENAI_API_KEY")  # Default OpenAI key
+            google_api_key = os.getenv("GOOGLE_API_KEY")  # Default Google API key
+
+        llm = await crud.llm.get(self.session, id=published_llm_id)
+        if not llm:
+            raise ValueError(f"LLM not found. llm_id: {published_llm_id}")
+
+        if llm.llm_provider_id == 1:
+            self.llm = ChatOpenAI(model=llm.name, verbose=True, temperature=0, openai_api_key=self.api_key)
+        elif llm.llm_provider_id == 2:
+            self.llm = ChatGoogleGenerativeAI(model=llm.name, verbose=True, temperature=0,
+                                              google_api_key=self.api_key if is_owner else google_api_key)
+        else:
+            raise ValueError(f"LLM provider not found. llm_provider_id: {llm.llm_provider_id}")
+
+    async def get_conversation_history(self, chat_id: int) -> str:
+        conversation = "\n\nConversation History:\n"
+        cycles = await crud.cycle.get_all_finished_by_chat_id(self.session, chat_id=chat_id)
+        for cycle in cycles:
+            messages_in_cycle = await crud.message.get_all_by_cycle_id(self.session, cycle_id=cycle.id)
+            conversation += '\n'.join(
+                f'{{"role": "{message.role}", "message": "{message.content}"}}' for message in messages_in_cycle)
+        return conversation
+
+    async def create_agent(self, agent, conversation: str):
+        tools = []
+        if agent.tool_ids:
+            tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
+            tools = [function_map[tool.key] for tool in tools_from_db]
+
+        return Agent(
+            role=dedent(agent.role),
+            goal=dedent(agent.goal),
+            backstory=dedent(agent.backstory),
+            tools=tools,
+            verbose=True,
+            llm=self.llm,
+            max_iter=10,
+            step_callback=lambda agent_output: asyncio.run_coroutine_threadsafe(
+                self.create_agent_callback(agent.id, agent.name)(agent_output), self.loop
+            ).result()
+        )
+
+    async def create_tasks(self, published_crew, agent_dict: Dict[int, Agent], conversation: str) -> Dict[int, Task]:
+        tasks = await crud.published_task.get_all_active_by_published_crew_id(self.session,
+                                                                              published_crew_id=published_crew.id)
+        if not tasks:
+            raise Exception(f"Tasks not found for published_crew_id: {published_crew.id}")
+
+        task_dict = {}
+        for task_id in published_crew.published_task_ids:
+            task = await crud.published_task.get_active(self.session, id=task_id)
+            if task:
+                context_tasks = [task_dict.get(task_id) for task_id in (task.context_published_task_ids or [])]
+                task_dict[task_id] = Task(
+                    description=dedent(task.description + conversation),
+                    expected_output=dedent(task.expected_output),
+                    agent=agent_dict[task.published_agent_id],
+                    context=context_tasks,
+                    callback=lambda task_output: asyncio.run_coroutine_threadsafe(
+                        self.create_task_callback(task.id, task.name)(task_output), self.loop
+                    ).result()
+                )
+        return task_dict
+
+    @asynccontextmanager
+    async def cycle_context(self):
+        try:
+            await self.check_cycle_status()
+            yield
+        finally:
+            await crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)
+
+    async def process_result(self, result: Any, metrics: Dict):
+        logger.info(f"result: {result}")
+        await self.append_message(f"[system] system : metrics: {metrics}", role=MessageRole.SYSTEM)
 
     async def check_cycle_status(self):
         get_cycle = await crud.cycle.get(self.session, id=self.cycle_id)
@@ -226,15 +207,14 @@ class CrewAiStartService:
             logger.info(f"Cycle stopped. cycle_id: {self.cycle_id}")
             self.loop.stop()
             logger.info(f"Loop stopped. cycle_id: {self.cycle_id}")
-            raise Exception("Cycle stopped!!!!!")
-        
-    async def stop(self, cycle_id):
-        success = False
-        msg = "cycle 의 status 가 STARTED 일때만 stop 가능합니다."
+            raise Exception("Cycle stopped!")
+
+    async def stop(self, cycle_id: int) -> Dict[str, Any]:
         cycle = await crud.cycle.get(self.session, id=cycle_id)
         logger.info(f"Stopping Crew AI Service for cycle: {cycle_id}, status: {cycle.status}")
+
         if cycle.status == CycleStatus.STARTED.value:
-            success = True
-            msg = "cycle 의 status 가 STOPPED 로 변경합니다."
             await crud.cycle.update_status(self.session, cycle_id=cycle_id, status=CycleStatus.STOPPED)
-        return {"cycle id": cycle_id, "success": success, "msg": msg}
+            return {"cycle id": cycle_id, "success": True, "msg": "Cycle status changed to STOPPED."}
+        else:
+            return {"cycle id": cycle_id, "success": False, "msg": "Cycle can only be stopped when status is STARTED."}
