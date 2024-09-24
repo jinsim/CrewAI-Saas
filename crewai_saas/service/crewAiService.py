@@ -1,7 +1,9 @@
 import os
+import sys
 import asyncio
 import logging
 import threading
+import inspect
 from textwrap import dedent
 from typing import Dict, List, Any, Optional, Callable, Type
 from contextlib import asynccontextmanager
@@ -32,12 +34,14 @@ class CrewAiStartService:
         self.thread_id = threading.get_ident()
 
     def start_loop(self, loop: asyncio.AbstractEventLoop):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         asyncio.set_event_loop(loop)
         loop.run_forever()
         logger.info("Threading loop ended")
 
     async def append_message(self, content: str, role: MessageRole, task_id: Optional[int] = None,
                              agent_id: Optional[int] = None, type: Optional[MessageType] = None):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         await self.check_cycle_status()
         logger.info(f"Appending message for cycle: {self.cycle_id} content: {content}")
 
@@ -48,25 +52,31 @@ class CrewAiStartService:
         )
 
     def create_task_callback(self, task_id: int, task_name: str):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         async def async_callback(task_output: str):
+            logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
             await self.append_message(f"[task] {task_name} : {task_output}",
                                       role=MessageRole.ASSISTANT, task_id=task_id, type=MessageType.TASK)
 
         return async_callback
 
     def create_agent_callback(self, agent_id: int, agent_name: str):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         async def async_callback(agent_output: str):
+            logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
             await self.append_message(f"[agent] {agent_name} : {agent_output}",
                                       role=MessageRole.ASSISTANT, agent_id=agent_id, type=MessageType.AGENT)
 
         return async_callback
 
     def run_coroutine_in_thread(self, coro: Any):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         """Run a coroutine in the thread's event loop and wait for the result."""
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
 
     async def start(self, employed_crew_id: int, chat_id: int, cycle_id: int):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         self.cycle_id = cycle_id
         self.chat_id = chat_id
         await crud.cycle.update_execution_id(self.session, cycle_id=self.cycle_id, execution_id=self.thread_id)
@@ -98,18 +108,25 @@ class CrewAiStartService:
         )
         logger.info(crew_instance)
 
-        async with self.cycle_context():
-            result = await crew_instance.kickoff_async()
-            metrics = crew_instance.usage_metrics
-            logger.info(f"metric: {metrics}")
-            logger.info(f"result: {result}")
+        await self.check_cycle_status()
+        result = await crew_instance.kickoff_async()
+        metrics = crew_instance.usage_metrics
+        logger.info(f"metric: {metrics}")
+        logger.info(f"result: {result}")
 
-            if result:
-                await self.process_result(result, metrics)
+        if result:
+            logger.info("result : %s", result)
+            self.run_coroutine_in_thread(
+                self.append_message("[system] system : metrics: " + str(metrics), role=MessageRole.SYSTEM)
+            )
+            self.run_coroutine_in_thread(
+                crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)
+            )
 
         return result
 
     async def get_or_raise(self, getter: Callable, param_name: str, param_value: Any, entity_name: str):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         result = await getter(self.session, **{param_name: param_value})
         if not result:
             logger.error(f"{entity_name} not found. {param_name}: {param_value}")
@@ -117,6 +134,7 @@ class CrewAiStartService:
         return result
 
     async def setup_llm(self, user_id: int, llm_id: int, published_llm_id: int, is_owner: bool):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         if is_owner:
             api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=user_id, llm_id=llm_id)
             if not api_key:
@@ -140,6 +158,7 @@ class CrewAiStartService:
             raise ValueError(f"LLM provider not found. llm_provider_id: {llm.llm_provider_id}")
 
     async def get_conversation_history(self, chat_id: int) -> str:
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         conversation = "\n\nConversation History:\n"
         cycles = await crud.cycle.get_all_finished_by_chat_id(self.session, chat_id=chat_id)
         for cycle in cycles:
@@ -149,6 +168,7 @@ class CrewAiStartService:
         return conversation
 
     async def create_agent(self, agent, conversation: str):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         tools = []
         if agent.tool_ids:
             tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
@@ -161,13 +181,14 @@ class CrewAiStartService:
             tools=tools,
             verbose=True,
             llm=self.llm,
-            max_iter=10,
+            max_iter=3,
             step_callback=lambda agent_output: asyncio.run_coroutine_threadsafe(
                 self.create_agent_callback(agent.id, agent.name)(agent_output), self.loop
             ).result()
         )
 
     async def create_tasks(self, published_crew, agent_dict: Dict[int, Agent], conversation: str) -> Dict[int, Task]:
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         tasks = await crud.published_task.get_all_active_by_published_crew_id(self.session,
                                                                               published_crew_id=published_crew.id)
         if not tasks:
@@ -191,25 +212,33 @@ class CrewAiStartService:
 
     @asynccontextmanager
     async def cycle_context(self):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         try:
             await self.check_cycle_status()
             yield
         finally:
             await crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)
 
-    async def process_result(self, result: Any, metrics: Dict):
+    async def process_result(self, result: Any, metrics: Any):
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         logger.info(f"result: {result}")
         await self.append_message(f"[system] system : metrics: {metrics}", role=MessageRole.SYSTEM)
 
     async def check_cycle_status(self):
-        get_cycle = await crud.cycle.get(self.session, id=self.cycle_id)
-        if get_cycle.status == CycleStatus.STOPPED.value:
-            logger.info(f"Cycle stopped. cycle_id: {self.cycle_id}")
-            self.loop.stop()
-            logger.info(f"Loop stopped. cycle_id: {self.cycle_id}")
-            raise Exception("Cycle stopped!")
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
+        try:
+            get_cycle = await crud.cycle.get(self.session, id=self.cycle_id)
+            if get_cycle.status == CycleStatus.STOPPED.value:
+                logger.info(f"Cycle stopped. cycle_id: {self.cycle_id}")
+                self.loop.stop()
+                logger.info(f"Loop stopped. cycle_id: {self.cycle_id}")
+                raise Exception("Cycle stopped!")
+        except Exception as e:
+            logger.error(f"Error checking cycle status: {e}")
+            raise e
 
     async def stop(self, cycle_id: int) -> Dict[str, Any]:
+        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         cycle = await crud.cycle.get(self.session, id=cycle_id)
         logger.info(f"Stopping Crew AI Service for cycle: {cycle_id}, status: {cycle.status}")
 

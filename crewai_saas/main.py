@@ -1,5 +1,8 @@
 import os
 import uvicorn
+import threading
+import inspect
+import logging
 
 from starlette.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request
@@ -9,6 +12,9 @@ from crewai_saas.core.config import settings
 from crewai_saas.core.events import lifespan
 from crewai_saas.core.exceptions import CustomException, unicorn_exception_handler
 
+logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a',
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -33,7 +39,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(api_router, prefix=settings.API_V1_STR)
 
-
+    logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
     return app
 
 

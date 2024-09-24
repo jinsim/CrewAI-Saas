@@ -2,6 +2,7 @@ from textwrap import dedent
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 import threading
+import inspect
 
 from crewai_saas import crud
 from crewai_saas.model import TaskWithContext, AgentWithTool, CrewWithAll, CycleCreate, MessageCreate
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 async def make_response(session, crew_id):
+    logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
     crew = await crud.crew.get_active(session, id=crew_id)
     if not crew:
         logger.error(f"Crew not found. crew_id: {crew_id}")

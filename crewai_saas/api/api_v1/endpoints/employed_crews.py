@@ -1,5 +1,6 @@
 import logging
-
+import threading
+import inspect
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Annotated
 from fastapi import FastAPI, Path, Query, Request, Response
@@ -17,7 +18,9 @@ from crewai_saas.tool import function_map
 from crewai_saas.core.enum import CycleStatus, MessageRole, CrewStatus
 
 router = APIRouter()
-
+logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a',
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 @router.get("/test")
 async def test(session: SessionDep) -> Response:
     news = function_map["search_news"].invoke("NVDA")
@@ -274,6 +277,7 @@ async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of t
                     chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                      session: SessionDep,
                         user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Response:
+    logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
     validation_result = await validate(session, get_employed_crew.user_id, user_email)
     if isinstance(validation_result, JSONResponse):
