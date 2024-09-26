@@ -113,11 +113,11 @@ async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The 
 
 @router.post("/{employed_crew_id}/chats/start")
 async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                         messages_in: list[MessageRequest], session: SessionDep, user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> ChatWithCycle:
+                         messages_in: list[MessageRequest], session: SessionDep) -> ChatWithCycle:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
-    if isinstance(validation_result, JSONResponse):
-        return validation_result
+    # validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    # if isinstance(validation_result, JSONResponse):
+    #     return validation_result
     chat = await crud.chat.create(session, obj_in=ChatCreate(employed_crew_id=employed_crew_id))
     cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat.id))
     message_dtos = []
@@ -275,13 +275,12 @@ async def read_messages(employed_crew_id: Annotated[int, Path(title="The ID of t
 @router.post("/{employed_crew_id}/chats/{chat_id}/kick-off")
 async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                     chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                     session: SessionDep,
-                        user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Response:
+                    session: SessionDep) -> Response:
     logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
-    if isinstance(validation_result, JSONResponse):
-        return validation_result
+    # validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    # if isinstance(validation_result, JSONResponse):
+    #     return validation_result
     new_cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id))
     result = await crewAiService.CrewAiStartService(session).start(employed_crew_id=employed_crew_id, chat_id=chat_id, cycle_id=new_cycle.id)
     # await crud.cycle.update_status(session, cycle_id=new_cycle.id, status=CycleStatus.FINISHED)
@@ -291,12 +290,11 @@ async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of t
 @router.post("/{employed_crew_id}/chats/{chat_id}/stop")
 async def stop_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                     chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                    session: SessionDep,
-                    user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> JSONResponse:
+                    session: SessionDep) -> JSONResponse:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
-    if isinstance(validation_result, JSONResponse):
-        return validation_result
+    # validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    # if isinstance(validation_result, JSONResponse):
+    #     return validation_result
     cycle = await crud.cycle.get_latest_by_chat_id(session, chat_id=chat_id)
     logging.info(f"Stopping cycle: {cycle.id}")
     if cycle.status == CycleStatus.FINISHED:
