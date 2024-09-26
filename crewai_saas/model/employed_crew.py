@@ -9,14 +9,14 @@ from crewai_saas.model.published_crew import PublishedCrew
 
 class EmployedCrewCreate(CreateBase):
     crew_id: int
-    user_id: int
+    profile_id: int
 
 class EmployedCrewUpdate(UpdateBase):
     is_favorite: bool
 
 class EmployedCrew(ResponseBase):
     crew_id: int
-    user_id: int
+    profile_id: int
     is_favorite: bool
     is_deleted: bool
     is_owner: bool
@@ -25,7 +25,7 @@ class EmployedCrew(ResponseBase):
 
 class EmployedCrewInDB(InDBBase):
     crew_id: int
-    user_id: int
+    profile_id: int
     is_favorite: bool
     is_deleted: bool
     is_owner: bool

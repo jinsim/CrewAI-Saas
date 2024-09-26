@@ -54,19 +54,19 @@ class CountryInDB(InDBBaseWithoutCreatedAt):
 class ApiKeyCreate(CreateBase):
     name: Optional[str] = ""
     value: Optional[str] = ""
-    user_id: Optional[int] = None
+    profile_id: Optional[int] = None
     llm_provider_id: int
 
 class ApiKeyUpdate(UpdateBase):
     name: Optional[str] = ""
     value: Optional[str] = ""
-    user_id: Optional[int] = None
+    profile_id: Optional[int] = None
     llm_provider_id: int
 
 class ApiKey(ResponseBase):
     name: Optional[str] = ""
     value: Optional[str] = ""
-    user_id: Optional[int] = None
+    profile_id: Optional[int] = None
     llm_provider_id: int
 
     table_name: ClassVar[str] = "api_key"
@@ -74,6 +74,6 @@ class ApiKey(ResponseBase):
 class ApiKeyInDB(InDBBase):
     name: Optional[str] = ""
     value: Optional[str] = ""
-    user_id: Optional[int] = None
+    profile_id: Optional[int] = None
     llm_provider_id: int
 

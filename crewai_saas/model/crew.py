@@ -6,7 +6,7 @@ from crewai_saas.core.enum.CrewStatus import CrewStatus
 
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase
 class CrewCreate(CreateBase):
-    user_id: int
+    profile_id: int
 
 class CrewUpdate(UpdateBase):
     name: Optional[str] = None
@@ -43,7 +43,7 @@ class Crew(ResponseBase):
     tags: Optional[List[str]]
     task_ids: Optional[List[int]]
     pre_questions: Optional[List[str]]
-    user_id: Optional[int]
+    profile_id: Optional[int]
 
     table_name: ClassVar[str] = "crew"
     class Config:
@@ -68,7 +68,7 @@ class CrewInDB(InDBBase):
     tags: Optional[List[str]]
     task_ids: Optional[List[int]]
     pre_questions: Optional[List[str]]
-    user_id: Optional[int]
+    profile_id: Optional[int]
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True
