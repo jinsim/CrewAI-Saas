@@ -16,6 +16,8 @@ from crewai_saas.tool import function_map
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
+from concurrent.futures import ThreadPoolExecutor
+
 
 logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a',
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -23,15 +25,16 @@ logger = logging.getLogger(__name__)
 
 class CrewAiStartService:
     def __init__(self, session):
-        self.cycle_id: Optional[int] = None
-        self.chat_id: Optional[int] = None
-        self.api_key: Optional[str] = None
-        self.llm: Optional[Any] = None
+        self.cycle_id = None
+        self.chat_id = None
+        self.api_key = None
+        self.llm = None
         self.session = session
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.start_loop, args=(self.loop,))
         self.thread.start()
-        self.thread_id = threading.get_ident()
+        self.thread_loop = None
+        self.executor = ThreadPoolExecutor(max_workers=1)
 
     def start_loop(self, loop: asyncio.AbstractEventLoop):
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
@@ -76,12 +79,19 @@ class CrewAiStartService:
         return future.result()
 
     async def start(self, employed_crew_id: int, chat_id: int, cycle_id: int):
-        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         self.cycle_id = cycle_id
         self.chat_id = chat_id
-        await crud.cycle.update_execution_id(self.session, cycle_id=self.cycle_id, execution_id=self.thread_id)
+
+        # Log the current thread and event loop
+        current_thread = threading.current_thread()
+        current_loop = asyncio.get_event_loop()
+        logging.info(f"Start method - Thread: {current_thread.name}, Loop: {id(current_loop)}")
         logger.info(
-            f"Starting Crew AI Service for employed_crew_id: {employed_crew_id}, chat_id: {self.chat_id}, cycle_id: {self.cycle_id}, execution_id: {self.thread_id}")
+            f"Starting Crew AI Service for employed_crew_id: {employed_crew_id}, chat_id: {self.chat_id}, cycle_id: {self.cycle_id}")
+
+        # await crud.cycle.update_execution_id(self.session, cycle_id=self.cycle_id, execution_id=self.thread_id)
+        logger.info(
+            f"Starting Crew AI Service for employed_crew_id: {employed_crew_id}, chat_id: {self.chat_id}, cycle_id: {self.cycle_id}")
 
         employed_crew = await self.get_or_raise(crud.employed_crew.get_active, "id", employed_crew_id, "EmployedCrew")
         crew = await self.get_or_raise(crud.crew.get_active, "id", employed_crew.crew_id, "Crew")
@@ -89,7 +99,7 @@ class CrewAiStartService:
                                                  "PublishedCrew")
         logger.info(f"Published crew: {published_crew}")
 
-        await self.setup_llm(employed_crew.user_id, crew.llm_id, published_crew.llm_id, employed_crew.is_owner)
+        await self.setup_llm(employed_crew.profile_id, crew.llm_id, published_crew.llm_id, employed_crew.is_owner)
 
         agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session,
                                                                                 published_crew_id=published_crew.id)
@@ -100,6 +110,8 @@ class CrewAiStartService:
 
         agent_dict = {agent.id: await self.create_agent(agent, conversation) for agent in agents}
         task_dict = await self.create_tasks(published_crew, agent_dict, conversation)
+        logger.info(f"Agents: {agent_dict}")
+        logger.info(f"Tasks: {task_dict}")
 
         crew_instance = Crew(
             agents=list(agent_dict.values()),
@@ -133,12 +145,12 @@ class CrewAiStartService:
             raise ValueError(f"{entity_name} not found.")
         return result
 
-    async def setup_llm(self, user_id: int, llm_id: int, published_llm_id: int, is_owner: bool):
+    async def setup_llm(self, profile_id: int, llm_id: int, published_llm_id: int, is_owner: bool):
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         if is_owner:
-            api_key = await crud.api_key.get_active_by_user_id_and_llm(self.session, user_id=user_id, llm_id=llm_id)
+            api_key = await crud.api_key.get_active_by_profile_id_and_llm(self.session, profile_id=profile_id, llm_id=llm_id)
             if not api_key:
-                raise ValueError(f"API key not found for user_id: {user_id}, llm_id: {llm_id}")
+                raise ValueError(f"API key not found for profile_id: {profile_id}, llm_id: {llm_id}")
             self.api_key = api_key.value
         else:
             # Use default API keys for non-owners
@@ -181,7 +193,7 @@ class CrewAiStartService:
             tools=tools,
             verbose=True,
             llm=self.llm,
-            max_iter=3,
+            max_iter=10,
             step_callback=lambda agent_output: asyncio.run_coroutine_threadsafe(
                 self.create_agent_callback(agent.id, agent.name)(agent_output), self.loop
             ).result()
@@ -225,23 +237,24 @@ class CrewAiStartService:
         await self.append_message(f"[system] system : metrics: {metrics}", role=MessageRole.SYSTEM)
 
     async def check_cycle_status(self):
-        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
+        # Log the current thread and event loop
+        current_thread = threading.current_thread()
+        current_loop = asyncio.get_event_loop()
+        logging.info(f"Check cycle status - Thread: {current_thread.name}, Loop: {id(current_loop)}")
+
         try:
             get_cycle = await crud.cycle.get(self.session, id=self.cycle_id)
+            logger.info(f"Cycle status: {get_cycle.status}")
             if get_cycle.status == CycleStatus.STOPPED.value:
-                logger.info(f"Cycle stopped. cycle_id: {self.cycle_id}")
-                self.loop.stop()
-                logger.info(f"Loop stopped. cycle_id: {self.cycle_id}")
+                logging.info(f"Cycle stopped. cycle_id: {self.cycle_id}")
                 raise Exception("Cycle stopped!")
         except Exception as e:
-            logger.error(f"Error checking cycle status: {e}")
+            logging.error(f"Error checking cycle status: {e}")
             raise e
 
     async def stop(self, cycle_id: int) -> Dict[str, Any]:
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         cycle = await crud.cycle.get(self.session, id=cycle_id)
-        logger.info(f"Stopping Crew AI Service for cycle: {cycle_id}, status: {cycle.status}")
-
         if cycle.status == CycleStatus.STARTED.value:
             await crud.cycle.update_status(self.session, cycle_id=cycle_id, status=CycleStatus.STOPPED)
             return {"cycle id": cycle_id, "success": True, "msg": "Cycle status changed to STOPPED."}
