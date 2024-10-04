@@ -222,20 +222,6 @@ class CrewAiStartService:
                 )
         return task_dict
 
-    @asynccontextmanager
-    async def cycle_context(self):
-        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
-        try:
-            await self.check_cycle_status()
-            yield
-        finally:
-            await crud.cycle.update_status(self.session, cycle_id=self.cycle_id, status=CycleStatus.FINISHED)
-
-    async def process_result(self, result: Any, metrics: Any):
-        logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
-        logger.info(f"result: {result}")
-        await self.append_message(f"[system] system : metrics: {metrics}", role=MessageRole.SYSTEM)
-
     async def check_cycle_status(self):
         # Log the current thread and event loop
         current_thread = threading.current_thread()
