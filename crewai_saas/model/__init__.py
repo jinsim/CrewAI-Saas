@@ -5,7 +5,7 @@ from .employed_crew import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate,
 
 from .llm import Llm, LlmInDB, LlmProvider, LlmProviderInDB, LlmProviderWithLlms
 from .test_item import TestItem, TestItemCreate, TestItemUpdate, TestItemInDB
-from .user import User, UserCreate, UserUpdate, UserInDB, Country, CountryInDB, ApiKey, ApiKeyCreate, ApiKeyUpdate, \
+from .profile import Profile, ProfileCreate, ProfileUpdate, ProfileInDB, Country, CountryInDB, ApiKey, ApiKeyCreate, ApiKeyUpdate, \
     ApiKeyInDB
 
 from .crew import Crew, CrewCreate, CrewUpdate, CrewInDB, Task, TaskCreate, TaskUpdate, TaskInDB, Agent, AgentCreate, \

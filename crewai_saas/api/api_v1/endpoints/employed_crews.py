@@ -8,7 +8,7 @@ from datetime import datetime
 
 from starlette.responses import JSONResponse
 
-from crewai_saas.api.api_v1.endpoints.users import validate
+from crewai_saas.api.api_v1.endpoints.profiles import validate
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas import crud
 from crewai_saas.core.google_auth_utils import GoogleAuthUtils
@@ -28,9 +28,9 @@ async def test(session: SessionDep) -> Response:
     return Response(content="Success")
 
 @router.post("/")
-async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrewWithCrew:
-    logging.info(f"Creating employed_crew: {employed_crew_in}, user_email: {user_email}, user_id: {employed_crew_in.user_id}")
-    validation_result = await validate(session, employed_crew_in.user_id, user_email)
+async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: SessionDep,profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrewWithCrew:
+    logging.info(f"Creating employed_crew: {employed_crew_in}, profile_email: {profile_email}, profile_id: {employed_crew_in.profile_id}")
+    validation_result = await validate(session, employed_crew_in.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     crew = await crud.crew.get_active(session, id=employed_crew_in.crew_id)
@@ -42,29 +42,29 @@ async def create_employed_crew(employed_crew_in: EmployedCrewCreate, session: Se
 @router.put("/{employed_crew_id}")
 async def update_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                                employed_crew_in: EmployedCrewUpdate, session: SessionDep,
-                               user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrew:
+                               profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrew:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     return await crud.employed_crew.update(session, obj_in=employed_crew_in, id=employed_crew_id)
 
 
 
-@router.get("/by-user-id/{user_id}")
-async def read_employed_crews(user_id: Annotated[int, Path(title="The ID of the User to get")], session: SessionDep,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrew]:
-    validation_result = await validate(session, user_id, user_email)
+@router.get("/by-profile-id/{profile_id}")
+async def read_employed_crews(profile_id: Annotated[int, Path(title="The ID of the User to get")], session: SessionDep,profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrew]:
+    validation_result = await validate(session, profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
-    return await crud.employed_crew.get_all_active_by_owner(session, user_id=user_id)
+    return await crud.employed_crew.get_all_active_by_owner(session, profile_id=profile_id)
 
 
-@router.get("/by-user")
-async def read_employed_crews_by_user(session: SessionDep
-                              , user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrewWithCrew]:
-    user = await crud.user.get_active_by_email(session, email=user_email)
+@router.get("/by-profile")
+async def read_employed_crews_by_profile(session: SessionDep
+                              , profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrewWithCrew]:
+    profile = await crud.profile.get_active_by_email(session, email=profile_email)
 
-    employed_crews = await crud.employed_crew.get_all_active_employed_crews_by_owner(session, user_id=user.id)
+    employed_crews = await crud.employed_crew.get_all_active_employed_crews_by_owner(session, profile_id=profile.id)
 
     results = []
 
@@ -79,15 +79,15 @@ async def read_employed_crews_by_user(session: SessionDep
 
 @router.get("/by-crew-id/{crew_id}")
 async def read_employed_crews_by_crew_id(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                                         session: SessionDep, user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrew]:
-    user_entity = await crud.user.get_active_by_email(session, email=user_email)
-    return await crud.employed_crew.get_all_active_by_crew_id_and_user_id(session, crew_id=crew_id, user_id=user_entity.id)
+                                         session: SessionDep, profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[EmployedCrew]:
+    profile_entity = await crud.profile.get_active_by_email(session, email=profile_email)
+    return await crud.employed_crew.get_all_active_by_crew_id_and_profile_id(session, crew_id=crew_id, profile_id=profile_entity.id)
 
 @router.get("/is_owned/by-crew-id/{crew_id}")
 async def read_owned_employed_crews_by_crew_id(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                                         session: SessionDep, user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrew:
-    user_entity = await crud.user.get_active_by_email(session, email=user_email)
-    return await crud.employed_crew.get_active_is_owned_by_crew_id_and_user_id(session, crew_id=crew_id, user_id=user_entity.id)
+                                         session: SessionDep, profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrew:
+    profile_entity = await crud.profile.get_active_by_email(session, email=profile_email)
+    return await crud.employed_crew.get_active_is_owned_by_crew_id_and_profile_id(session, crew_id=crew_id, profile_id=profile_entity.id)
 
 
 @router.get("/{employed_crew_id}")
@@ -101,10 +101,10 @@ async def read_employed_crew_by_id(employed_crew_id: Annotated[int, Path(title="
 @router.delete("/{employed_crew_id}")
 async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                                session: SessionDep,
-                               user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrew:
+                               profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> EmployedCrew:
 
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
 
@@ -115,7 +115,7 @@ async def delete_employed_crew(employed_crew_id: Annotated[int, Path(title="The 
 async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                          messages_in: list[MessageRequest], session: SessionDep) -> ChatWithCycle:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    # validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    # validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     # if isinstance(validation_result, JSONResponse):
     #     return validation_result
     chat = await crud.chat.create(session, obj_in=ChatCreate(employed_crew_id=employed_crew_id))
@@ -134,9 +134,9 @@ async def create_chat_with_pre_questions(employed_crew_id: Annotated[int, Path(t
 
 
 @router.get("/{employed_crew_id}/chats")
-async def read_chats(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep, user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Chat]:
+async def read_chats(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")], session: SessionDep, profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Chat]:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     return await crud.chat.get_all_active_by_employed_crew_id(session, employed_crew_id=employed_crew_id)
@@ -145,9 +145,9 @@ async def read_chats(employed_crew_id: Annotated[int, Path(title="The ID of the 
 # async def read_chat_info_finished(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
 #                     employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
 #                     session: SessionDep,
-#                     user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> ChatWithCycleList | None:
+#                     profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> ChatWithCycleList | None:
 #     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-#     validation_result = await validate(session, get_employed_crew.user_id, user_email)
+#     validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
 #     if isinstance(validation_result, JSONResponse):
 #         return validation_result
 #     chat = await crud.chat.get_active(session, id=chat_id)
@@ -167,9 +167,9 @@ async def read_chats(employed_crew_id: Annotated[int, Path(title="The ID of the 
 async def read_chat_info(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                     employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                     session: SessionDep,
-                    user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> ChatWithCycleList | None:
+                    profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> ChatWithCycleList | None:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     chat = await crud.chat.get_active(session, id=chat_id)
@@ -194,9 +194,9 @@ async def read_chat_info(chat_id: Annotated[int, Path(title="The ID of the Chat 
 async def delete_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                       employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                       session: SessionDep,
-                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Chat:
+                      profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Chat:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     return await crud.chat.soft_delete(session, id=chat_id)
@@ -205,9 +205,9 @@ async def delete_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to 
 async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                                chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                                session: SessionDep,
-                               user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> JSONResponse:
+                               profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> JSONResponse:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     if get_employed_crew.is_owner:
@@ -234,9 +234,9 @@ async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the
 async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                            chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                            cycle_id: Annotated[int, Path(title="The ID of the Cycle to get")], session: SessionDep,
-                           user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> CycleWithMessage:
+                           profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> CycleWithMessage:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     cycle = await crud.cycle.get(session, id=cycle_id)
@@ -251,9 +251,9 @@ async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID o
 async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                          chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                          message_in: MessageRequest, session: SessionDep,
-                         user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> MessageSimple:
+                         profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> MessageSimple:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id))
@@ -265,9 +265,9 @@ async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of 
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/messages")
 async def read_messages(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
-                        chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep,user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Message]:
+                        chat_id: Annotated[int, Path(title="The ID of the Chat to get")], session: SessionDep,profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Message]:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     return await crud.message.get_all_by_chat_id(session, chat_id=chat_id)
@@ -278,7 +278,7 @@ async def kick_off_crew(employed_crew_id: Annotated[int, Path(title="The ID of t
                     session: SessionDep) -> Response:
     logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    # validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    # validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     # if isinstance(validation_result, JSONResponse):
     #     return validation_result
     new_cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id))
@@ -292,7 +292,7 @@ async def stop_crew(employed_crew_id: Annotated[int, Path(title="The ID of the E
                     chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                     session: SessionDep) -> JSONResponse:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    # validation_result = await validate(session, get_employed_crew.user_id, user_email)
+    # validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
     # if isinstance(validation_result, JSONResponse):
     #     return validation_result
     cycle = await crud.cycle.get_latest_by_chat_id(session, chat_id=chat_id)

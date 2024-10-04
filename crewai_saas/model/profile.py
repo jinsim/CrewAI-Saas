@@ -5,7 +5,7 @@ from typing import Optional
 from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase, UpdateBase, ResponseBaseWithoutCreatedAt, InDBBaseWithoutCreatedAt
 
 
-class UserCreate(CreateBase):
+class ProfileCreate(CreateBase):
     name: Optional[str] = ""
     email: Optional[str] = ""
     image: Optional[str] = ""
@@ -13,14 +13,14 @@ class UserCreate(CreateBase):
     is_deleted: Optional[bool] = False
     country_id: Optional[int] = None
 
-class UserUpdate(UpdateBase):
+class ProfileUpdate(UpdateBase):
     name: str
     email: str
     image: Optional[str] = ""
     coin: Optional[float] = 0
     country_id: Optional[int] = None
 
-class User(ResponseBase):
+class Profile(ResponseBase):
     name: Optional[str] = ""
     email: Optional[str] = ""
     image: Optional[str] = ""
@@ -28,9 +28,9 @@ class User(ResponseBase):
     is_deleted: Optional[bool] = False
     country_id: Optional[int] = None
     is_new_user: Optional[bool] = False
-    table_name: ClassVar[str] = "user"
+    table_name: ClassVar[str] = "profile"
 
-class UserInDB(InDBBase):
+class ProfileInDB(InDBBase):
     name: Optional[str] = ""
     email: Optional[str] = ""
     image: Optional[str] = ""

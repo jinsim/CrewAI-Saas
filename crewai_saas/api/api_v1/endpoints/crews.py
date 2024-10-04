@@ -3,11 +3,11 @@ from starlette.responses import JSONResponse
 from typing import Annotated, Optional
 
 from crewai_saas import crud
-from crewai_saas.api.api_v1.endpoints.users import validate, get_user_by_token
+from crewai_saas.api.api_v1.endpoints.profiles import validate, get_profile_by_token
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.core.enum import CrewStatus
 from crewai_saas.core.google_auth_utils import GoogleAuthUtils
-from crewai_saas.crud import crew, employed_crew, api_key, task, user, published_crew, published_agent, published_task
+from crewai_saas.crud import crew, employed_crew, api_key, task, profile, published_crew, published_agent, published_task
 from crewai_saas.service import crewai, crewAiService
 
 from crewai_saas.model import Crew, CrewCreate, CrewUpdate, CrewWithAll, PublishedCrewCreate, PublishedAgentCreate, PublishedTaskCreate
@@ -17,7 +17,7 @@ router = APIRouter()
 @router.post("/")
 async def create_crew(crew_in: CrewCreate, session: SessionDep) -> Crew:
     crew_data = await crew.create(session, obj_in=crew_in)
-    await employed_crew.create_owned(session, crew_id=crew_data.id, user_id=crew_in.user_id)
+    await employed_crew.create_owned(session, crew_id=crew_data.id, profile_id=crew_in.profile_id)
     return crew_data
 
 
@@ -27,7 +27,7 @@ async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
                       crew_in: CrewUpdate,
                       user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Crew:
     get_crew = await crew.get_active(session, id=crew_id)
-    validation_result = await validate(session, get_crew.user_id, user_email)
+    validation_result = await validate(session, get_crew.profile_id, user_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
 
@@ -41,14 +41,14 @@ async def read_crews(session: SessionDep) -> list[Crew]:
 
 @router.get("/me")
 async def read_all_crews_by_owner_id(session: SessionDep,
-                                     user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Crew]:
+                                     profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> list[Crew]:
 
-    get_user_by_email = await get_user_by_token(session, user_email=user_email)
-    return await crew.get_all_crews_by_owner(session, user_id=get_user_by_email.id)
+    get_profile_by_email = await get_profile_by_token(session, profile_email=profile_email)
+    return await crew.get_all_crews_by_owner(session, profile_id=get_profile_by_email.id)
 
-@router.get("/users/{user_id}")
-async def read_public_crews_by_user_id(user_id: Annotated[int, Path(title="The ID of the Crew to get")], session: SessionDep) -> list[Crew]:
-    return await crew.get_all_public_crews_by_user_id(session, user_id=user_id)
+@router.get("/users/{profile_id}")
+async def read_public_crews_by_profile_id(profile_id: Annotated[int, Path(title="The ID of the Crew to get")], session: SessionDep) -> list[Crew]:
+    return await crew.get_all_public_crews_by_profile_id(session, profile_id=profile_id)
 
 @router.get("/search")
 async def search_crews(search_query: str,
@@ -116,7 +116,7 @@ async def delete_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
                       session: SessionDep,
                       user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Crew:
     get_crew = await crew.get_active(session, id=crew_id)
-    validation_result = await validate(session, get_crew.user_id, user_email)
+    validation_result = await validate(session, get_crew.profile_id, user_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     return await crew.soft_delete(session, id=crew_id)
@@ -128,7 +128,7 @@ async def publish_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to
                       session: SessionDep,
                       user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Response:
     get_crew = await crew.get_active(session, id=crew_id)
-    validation_result = await validate(session, get_crew.user_id, user_email)
+    validation_result = await validate(session, get_crew.profile_id, user_email)
     if isinstance(validation_result, JSONResponse):
         return validation_result
     get_agents = await crud.agent.get_all_active_by_crew_id(session, crew_id=crew_id)
