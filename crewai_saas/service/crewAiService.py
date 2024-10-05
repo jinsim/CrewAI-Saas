@@ -97,14 +97,16 @@ class CrewAiStartService:
         crew = await self.get_or_raise(crud.crew.get_active, "id", employed_crew.crew_id, "Crew")
         published_crew = await self.get_or_raise(crud.published_crew.get_active_by_crew_id_latest, "crew_id", crew.id,
                                                  "PublishedCrew")
-        logger.info(f"Published crew: {published_crew}")
+        is_owner = employed_crew.is_owner
+        running_crew = crew if is_owner else published_crew
+        logger.info(f"Running Crew: {running_crew}")
 
-        await self.setup_llm(employed_crew.profile_id, published_crew.llm_id, employed_crew.is_owner)
+        await self.setup_llm(employed_crew.profile_id, running_crew.llm_id, employed_crew.is_owner)
 
         conversation = await self.get_conversation_history(chat_id)
 
-        agent_dict = await self.create_agents(published_crew)
-        task_dict = await self.create_tasks(published_crew, agent_dict, conversation)
+        agent_dict = await self.create_agents(is_owner, running_crew)
+        task_dict = await self.create_tasks(is_owner, running_crew, agent_dict, conversation)
         logger.info(f"Agents: {agent_dict}")
         logger.info(f"Tasks: {task_dict}")
 
@@ -175,12 +177,15 @@ class CrewAiStartService:
                 f'{{"role": "{message.role}", "message": "{message.content}"}}' for message in messages_in_cycle)
         return conversation
 
-    async def create_agents(self, published_crew) -> Dict[int, Agent]:
+    async def create_agents(self, is_owner, running_crew) -> Dict[int, Agent]:
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
-        agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session,
-                                                                                published_crew_id=published_crew.id)
+        if is_owner:
+            agents = await crud.agent.get_all_active_by_crew_id(self.session, crew_id=running_crew.crew_id)
+        else:
+            agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session,
+                                                                                    published_crew_id=running_crew.id)
         if not agents:
-            raise Exception(f"Agents not found for published_crew_id: {published_crew.id}")
+            raise Exception(f"Agents not found for running_crew_id: {running_crew.id}")
 
         result = {}
         for agent in agents:
@@ -205,18 +210,25 @@ class CrewAiStartService:
 
         return result
 
-    async def create_tasks(self, published_crew, agent_dict: Dict[int, Agent], conversation: str) -> Dict[int, Task]:
+    async def create_tasks(self, is_owner, running_crew, agent_dict: Dict[int, Agent], conversation: str) -> Dict[int, Task]:
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
-        tasks = await crud.published_task.get_all_active_by_published_crew_id(self.session,
-                                                                              published_crew_id=published_crew.id)
+
+        if is_owner:
+            tasks = await crud.task.get_all_active_by_crew_id(self.session, crew_id=running_crew.crew_id)
+            task_ids = running_crew.task_ids
+        else:
+            tasks = await crud.published_task.get_all_active_by_published_crew_id(self.session,
+                                                                                  published_crew_id=running_crew.id)
+            task_ids = running_crew.published_task_ids
+
         if not tasks:
-            raise Exception(f"Tasks not found for published_crew_id: {published_crew.id}")
+            raise Exception(f"Tasks not found for running_crew_id: {running_crew.id}")
 
         task_dict = {}
-        for task_id in published_crew.published_task_ids:
-            task = await crud.published_task.get_active(self.session, id=task_id)
+        for task_id in task_ids:
+            task = await crud.task.get_active(self.session, id=task_id) if is_owner else await crud.published_task.get_active(self.session, id=task_id)
             if task:
-                context_tasks = [task_dict.get(task_id) for task_id in (task.context_published_task_ids or [])]
+                context_tasks = [task_dict.get(task_id) for task_id in (task.context_task_ids or [])] if is_owner else [task_dict.get(task_id) for task_id in (task.context_published_task_ids or [])]
                 task_dict[task_id] = Task(
                     description=dedent(task.description + conversation),
                     expected_output=dedent(task.expected_output),
