@@ -147,6 +147,7 @@ async def publish_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to
                 context_task_ids = [task_dict[task_id].id for task_id in task_entity.context_task_ids]
             task_dict[task_entity.id] = await published_task.create(session, obj_in=PublishedTaskCreate(**task_entity.dict(), published_agent_id=agent_dict[task_entity.agent_id].id, published_crew_id=publish_crew_entity.id, context_published_task_ids=context_task_ids))
     await published_crew.set_published_task_ids(session, published_crew_id=publish_crew_entity.id, published_task_ids=[task_dict[task_id].id for task_id in get_crew.task_ids])
-    await crew.update_status(session, crew_id=crew_id, status=CrewStatus.PUBLIC)
+    # await crew.update_status(session, crew_id=crew_id, status=CrewStatus.PUBLIC)
+    await crew.update_has_published(session, crew_id=crew_id, has_published=True)
 
     return await crewai.make_response(session=session, crew_id=crew_id)

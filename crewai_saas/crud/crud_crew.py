@@ -77,6 +77,12 @@ class CRUDCrew(CRUDBase[Crew, CrewCreate, CrewUpdate]):
         _, updated = data
         return self.model(**updated[0])
 
+    async def update_has_published(self, db: AsyncClient, *, crew_id: int, has_published: bool) -> Crew:
+        data, _ = await db.table(self.model.table_name).update({"has_published": has_published}).eq("id", crew_id).execute()
+        _, updated = data
+        return self.model(**updated[0])
+
+
 class CRUDTask(CRUDBase[Task, TaskCreate, TaskUpdate]):
     async def create(self, db: AsyncClient, *, obj_in: TaskCreate) -> Task:
         return await super().create(db, obj_in=obj_in)
