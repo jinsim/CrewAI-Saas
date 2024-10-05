@@ -99,16 +99,11 @@ class CrewAiStartService:
                                                  "PublishedCrew")
         logger.info(f"Published crew: {published_crew}")
 
-        await self.setup_llm(employed_crew.profile_id, crew.llm_id, published_crew.llm_id, employed_crew.is_owner)
-
-        agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session,
-                                                                                published_crew_id=published_crew.id)
-        if not agents:
-            raise Exception(f"Agents not found for published_crew_id: {published_crew.id}")
+        await self.setup_llm(employed_crew.profile_id, published_crew.llm_id, employed_crew.is_owner)
 
         conversation = await self.get_conversation_history(chat_id)
 
-        agent_dict = {agent.id: await self.create_agent(agent, conversation) for agent in agents}
+        agent_dict = await self.create_agents(published_crew)
         task_dict = await self.create_tasks(published_crew, agent_dict, conversation)
         logger.info(f"Agents: {agent_dict}")
         logger.info(f"Tasks: {task_dict}")
@@ -145,27 +140,28 @@ class CrewAiStartService:
             raise ValueError(f"{entity_name} not found.")
         return result
 
-    async def setup_llm(self, profile_id: int, llm_id: int, published_llm_id: int, is_owner: bool):
+    async def setup_llm(self, profile_id: int, llm_id: int, is_owner: bool):
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
-        if is_owner:
-            api_key = await crud.api_key.get_active_by_profile_id_and_llm(self.session, profile_id=profile_id, llm_id=llm_id)
-            if not api_key:
-                raise ValueError(f"API key not found for profile_id: {profile_id}, llm_id: {llm_id}")
-            self.api_key = api_key.value
-        else:
+        # 우선 api key 존재 여부와, 소유자를 체크하지 않음
+        # if is_owner:
+        #     api_key = await crud.api_key.get_active_by_profile_id_and_llm(self.session, profile_id=profile_id, llm_id=llm_id)
+        #     if not api_key:
+        #         raise ValueError(f"API key not found for profile_id: {profile_id}, llm_id: {llm_id}")
+        #     self.api_key = api_key.value
+        # else:
             # Use default API keys for non-owners
-            self.api_key = os.getenv("OPENAI_API_KEY")  # Default OpenAI key
-            google_api_key = os.getenv("GOOGLE_API_KEY")  # Default Google API key
+        openai_api_key = os.getenv("OPENAI_API_KEY")  # Default OpenAI key
+        google_api_key = os.getenv("GOOGLE_API_KEY")  # Default Google API key
 
-        llm = await crud.llm.get(self.session, id=published_llm_id)
+        llm = await crud.llm.get(self.session, id=llm_id)
         if not llm:
-            raise ValueError(f"LLM not found. llm_id: {published_llm_id}")
+            raise ValueError(f"LLM not found. llm_id: {llm_id}")
 
         if llm.llm_provider_id == 1:
-            self.llm = ChatOpenAI(model=llm.name, verbose=True, temperature=0, openai_api_key=self.api_key)
+            self.llm = ChatOpenAI(model=llm.name, verbose=True, temperature=0, openai_api_key=openai_api_key)
         elif llm.llm_provider_id == 2:
             self.llm = ChatGoogleGenerativeAI(model=llm.name, verbose=True, temperature=0,
-                                              google_api_key=self.api_key if is_owner else google_api_key)
+                                              google_api_key=google_api_key)
         else:
             raise ValueError(f"LLM provider not found. llm_provider_id: {llm.llm_provider_id}")
 
@@ -179,25 +175,35 @@ class CrewAiStartService:
                 f'{{"role": "{message.role}", "message": "{message.content}"}}' for message in messages_in_cycle)
         return conversation
 
-    async def create_agent(self, agent, conversation: str):
+    async def create_agents(self, published_crew) -> Dict[int, Agent]:
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
-        tools = []
-        if agent.tool_ids:
-            tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
-            tools = [function_map[tool.key] for tool in tools_from_db]
+        agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session,
+                                                                                published_crew_id=published_crew.id)
+        if not agents:
+            raise Exception(f"Agents not found for published_crew_id: {published_crew.id}")
 
-        return Agent(
-            role=dedent(agent.role),
-            goal=dedent(agent.goal),
-            backstory=dedent(agent.backstory),
-            tools=tools,
-            verbose=True,
-            llm=self.llm,
-            max_iter=10,
-            step_callback=lambda agent_output: asyncio.run_coroutine_threadsafe(
-                self.create_agent_callback(agent.id, agent.name)(agent_output), self.loop
-            ).result()
-        )
+        result = {}
+        for agent in agents:
+            logger.info(f"thread Id : {threading.get_ident()}, method Id : create_agent")
+            tools = []
+            if agent.tool_ids:
+                tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
+                tools = [function_map[tool.key] for tool in tools_from_db]
+
+            result[agent.id] = Agent(
+                role=dedent(agent.role),
+                goal=dedent(agent.goal),
+                backstory=dedent(agent.backstory),
+                tools=tools,
+                verbose=True,
+                llm=self.llm,
+                max_iter=10,
+                step_callback=lambda agent_output: asyncio.run_coroutine_threadsafe(
+                    self.create_agent_callback(agent.id, agent.name)(agent_output), self.loop
+                ).result()
+            )
+
+        return result
 
     async def create_tasks(self, published_crew, agent_dict: Dict[int, Agent], conversation: str) -> Dict[int, Task]:
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
