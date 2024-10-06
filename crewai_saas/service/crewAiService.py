@@ -16,6 +16,7 @@ from crewai_saas.tool import function_map
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
+# from langchain_upstage import ChatUpstage
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -141,7 +142,8 @@ class CrewAiStartService:
             logger.error(f"{entity_name} not found. {param_name}: {param_value}")
             raise ValueError(f"{entity_name} not found.")
         return result
-
+    # async def setup_upstage_llm(self):
+    #     pass
     async def setup_llm(self, profile_id: int, llm_id: int, is_owner: bool):
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         # 우선 api key 존재 여부와, 소유자를 체크하지 않음
@@ -180,7 +182,7 @@ class CrewAiStartService:
     async def create_agents(self, is_owner, running_crew) -> Dict[int, Agent]:
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         if is_owner:
-            agents = await crud.agent.get_all_active_by_crew_id(self.session, crew_id=running_crew.crew_id)
+            agents = await crud.agent.get_all_active_by_crew_id(self.session, crew_id=running_crew.id)
         else:
             agents = await crud.published_agent.get_all_active_by_published_crew_id(self.session,
                                                                                     published_crew_id=running_crew.id)
@@ -214,7 +216,7 @@ class CrewAiStartService:
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
 
         if is_owner:
-            tasks = await crud.task.get_all_active_by_crew_id(self.session, crew_id=running_crew.crew_id)
+            tasks = await crud.task.get_all_active_by_crew_id(self.session, crew_id=running_crew.id)
             task_ids = running_crew.task_ids
         else:
             tasks = await crud.published_task.get_all_active_by_published_crew_id(self.session,

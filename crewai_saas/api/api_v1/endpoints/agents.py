@@ -32,7 +32,7 @@ async def read_agents_by_task_id(task_id: Annotated[int, Path(title="The ID of t
 async def update_agent(agent_id: Annotated[int, Path(title="The ID of the it to get")],
                        agent_in: AgentUpdate, session: SessionDep) -> Agent:
     ret = await agent.update_exclude_none(session, obj_in=agent_in, id=agent_id)
-    await crew.update_status(session, crew_id=agent_in.crew_id, status=CrewStatus.EDITING)
+    await crew.update_has_published(session, crew_id=agent_in.crew_id, has_published=False)
 
 @router.delete("/{agent_id}")
 async def delete_agent(agent_id: Annotated[int, Path(title="The ID of the it to get")],

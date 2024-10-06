@@ -32,7 +32,7 @@ async def update_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
         return validation_result
 
     ret = await crud.crew.update_exclude_none(session, obj_in=crew_in, id=crew_id)
-    await crud.crew.update_status(session, crew_id=crew_id, status=CrewStatus.EDITING)
+    await crew.update_has_published(session, crew_id=crew_id, has_published=False)
     return ret
 
 @router.get("/")

@@ -22,7 +22,7 @@ async def read_tasks_by_crew_id(crew_id: Annotated[int, Path(title="The ID of th
 async def update_task(task_id: Annotated[int, Path(title="The ID of the Task to get")],
                            task_in: TaskUpdate, session: SessionDep) -> Task:
     ret = await task.update_exclude_none(session, obj_in=task_in, id=task_id)
-    await crew.update_status(session, crew_id=task_in.crew_id, status=CrewStatus.EDITING)
+    await crew.update_has_published(session, crew_id=task_in.crew_id, has_published=False)
     return ret
 
 @router.delete("/{task_id}")
