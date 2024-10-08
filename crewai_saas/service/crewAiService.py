@@ -14,11 +14,13 @@ from crewai_saas.core.enum import CycleStatus, MessageRole, MessageType
 from crewai_saas.model import MessageCreate
 from crewai_saas.tool import function_map
 
+
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
-# from langchain_upstage import ChatUpstage
+from langchain_upstage import ChatUpstage
 from concurrent.futures import ThreadPoolExecutor
-
+from dotenv import load_dotenv
+load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a',
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -142,8 +144,11 @@ class CrewAiStartService:
             logger.error(f"{entity_name} not found. {param_name}: {param_value}")
             raise ValueError(f"{entity_name} not found.")
         return result
-    # async def setup_upstage_llm(self):
-    #     pass
+    async def setup_upstage_llm(self, profile_id: int, llm_id: int, is_owner: bool):
+        logger.info(f"profile_id: {profile_id}, llm_id: {llm_id}, is_owner: {is_owner}")
+        api_key = os.getenv("UPSTAGE_API_KEY")
+        self.llm = ChatUpstage(api_key=api_key)
+
     async def setup_llm(self, profile_id: int, llm_id: int, is_owner: bool):
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
         # 우선 api key 존재 여부와, 소유자를 체크하지 않음
