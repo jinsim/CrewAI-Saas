@@ -110,15 +110,15 @@ class CrewAiStartService:
 
         agent_dict = await self.create_agents(is_owner, running_crew)
         task_dict = await self.create_tasks(is_owner, running_crew, agent_dict, conversation)
-        logger.info(f"Agents: {agent_dict}")
-        logger.info(f"Tasks: {task_dict}")
+        # logger.info(f"Agents: {agent_dict}")
+        # logger.info(f"Tasks: {task_dict}")
 
         crew_instance = Crew(
             agents=list(agent_dict.values()),
             tasks=list(task_dict.values()),
             verbose=True,
         )
-        logger.info(crew_instance)
+        logger.info(f"CrewAI : {crew_instance}")
 
         await self.check_cycle_status()
         result = await crew_instance.kickoff_async()
@@ -127,7 +127,6 @@ class CrewAiStartService:
         logger.info(f"result: {result}")
 
         if result:
-            logger.info("result : %s", result)
             self.run_coroutine_in_thread(
                 self.append_message("[system] system : metrics: " + str(metrics), role=MessageRole.SYSTEM)
             )
@@ -236,6 +235,7 @@ class CrewAiStartService:
             task = await crud.task.get_active(self.session, id=task_id) if is_owner else await crud.published_task.get_active(self.session, id=task_id)
             if task:
                 context_tasks = [task_dict.get(task_id) for task_id in (task.context_task_ids or [])] if is_owner else [task_dict.get(task_id) for task_id in (task.context_published_task_ids or [])]
+                logger.info(f"task : {task.id}, agent : {agent_dict[task.published_agent_id]}")
                 task_dict[task_id] = Task(
                     description=dedent(task.description + conversation),
                     expected_output=dedent(task.expected_output),

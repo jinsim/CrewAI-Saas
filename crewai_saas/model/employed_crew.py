@@ -121,6 +121,8 @@ class MessageSimple(InDBBase):
 class CycleCreate(CreateBase):
     chat_id: int
     execution_id: Optional[str] = None
+    status: Optional[CycleStatus] = CycleStatus.STARTED.value
+
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True

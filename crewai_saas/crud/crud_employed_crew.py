@@ -5,6 +5,8 @@ from supabase_py_async import AsyncClient
 from crewai_saas.crud.base import CRUDBase, ReadBase
 from crewai_saas.model import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate
 from crewai_saas.core.enum.CycleStatus import CycleStatus
+from crewai_saas.core.enum.MessageType import MessageType
+from crewai_saas.core.enum.MessageRole import MessageRole
 
 class CRUDEmployedCrew(CRUDBase[EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate]):
 
@@ -52,7 +54,14 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageUpdate]):
         return [self.model(**item) for item in got]
 
     async def get_all_by_cycle_id(self, db: AsyncClient, *, cycle_id: int) -> list[Message]:
-        data, count = await db.table(self.model.table_name).select("*").eq("cycle_id", cycle_id).order("id", desc=False).execute()
+        data, count = await db.table(self.model.table_name) \
+            .select("*") \
+            .eq("cycle_id", cycle_id) \
+            .or_("type.eq.task,type.is.null") \
+            .in_("role", ["user", "assistant"]) \
+            .order("id", desc=False) \
+            .execute()
+
         _, got = data
         return [self.model(**item) for item in got]
 
@@ -64,7 +73,7 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
         return [self.model(**item) for item in got]
 
     async def get_all_finished_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
-        data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).eq("status", CycleStatus.FINISHED.value).order("id", desc=True).execute()
+        data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).eq("status", CycleStatus.FINISHED.value).order("id", desc=False).execute()
         _, got = data
         return [self.model(**item) for item in got]
 

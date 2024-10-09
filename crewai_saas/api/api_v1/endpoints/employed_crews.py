@@ -218,6 +218,7 @@ async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the
         is_owner = False
     cycle_with_messages = []
     for cycle in cycles:
+        logger.info(f"cycle.id : {cycle.id}")
         messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
         message_dtos = [
             MessageSimple(**message.dict())
@@ -252,11 +253,11 @@ async def create_message(employed_crew_id: Annotated[int, Path(title="The ID of 
                          chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
                          message_in: MessageRequest, session: SessionDep,
                          profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> MessageSimple:
-    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
-    if isinstance(validation_result, JSONResponse):
-        return validation_result
-    cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id))
+    # get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    # validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
+    # if isinstance(validation_result, JSONResponse):
+    #     return validation_result
+    cycle = await crud.cycle.create(session, obj_in=CycleCreate(chat_id=chat_id, status=CycleStatus.FINISHED))
     message = await crud.message.create(session,obj_in=MessageCreate(cycle_id=cycle.id, **message_in.dict(), chat_id=chat_id))
 
     return MessageSimple(**message.dict())
