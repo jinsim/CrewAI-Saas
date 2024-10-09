@@ -23,6 +23,8 @@ class PublishedCrewCreate(CreateBase):
     tags: Optional[List[str]] = None
     pre_questions: Optional[List[str]] = None
     profile_id: Optional[int]
+    image: Optional[str] = None
+    detail: Optional[str] = None
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True
@@ -46,6 +48,8 @@ class PublishedCrew(ResponseBase):
     published_task_ids: Optional[List[int]]
     pre_questions: Optional[List[str]]
     profile_id: Optional[int]
+    image: Optional[str]
+    detail: Optional[str]
 
     table_name: ClassVar[str] = "published_crew"
     class Config:
@@ -72,6 +76,8 @@ class PublishedCrewInDB(InDBBase):
     published_task_ids: Optional[List[int]]
     pre_questions: Optional[List[str]]
     profile_id: Optional[int] = None
+    image: Optional[str]
+    detail: Optional[str]
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True
