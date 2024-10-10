@@ -201,6 +201,15 @@ class CrewAiStartService:
                 tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
                 tools = [function_map[tool.key] for tool in tools_from_db]
 
+            # 클로저를 사용하여 현재의 agent.id와 agent.name을 캡처
+            def create_step_callback(agent_id, agent_name):
+                def step_callback(agent_output):
+                    return asyncio.run_coroutine_threadsafe(
+                        self.create_agent_callback(agent_id, agent_name)(agent_output), self.loop
+                    ).result()
+
+                return step_callback
+
             result[agent.id] = Agent(
                 role=dedent(agent.role),
                 goal=dedent(agent.goal),
@@ -209,12 +218,11 @@ class CrewAiStartService:
                 verbose=True,
                 llm=self.llm,
                 max_iter=10,
-                step_callback=lambda agent_output: asyncio.run_coroutine_threadsafe(
-                    self.create_agent_callback(agent.id, agent.name)(agent_output), self.loop
-                ).result()
+                step_callback=create_step_callback(agent.id, agent.name)
             )
 
         return result
+
 
     async def create_tasks(self, is_owner, running_crew, agent_dict: Dict[int, Agent], conversation: str) -> Dict[int, Task]:
         logger.info(f"thread Id : {threading.get_ident()}, method Id : {inspect.currentframe().f_code.co_name}")
@@ -235,15 +243,24 @@ class CrewAiStartService:
             task = await crud.task.get_active(self.session, id=task_id) if is_owner else await crud.published_task.get_active(self.session, id=task_id)
             if task:
                 context_tasks = [task_dict.get(task_id) for task_id in (task.context_task_ids or [])] if is_owner else [task_dict.get(task_id) for task_id in (task.context_published_task_ids or [])]
+                logger.info(f"task = {task}")
                 logger.info(f"task : {task.id}, agent : {agent_dict[task.published_agent_id]}")
+
+                # 클로저를 사용하여 현재의 task.id와 task.name을 캡처
+                def create_task_callback(task_id, task_name):
+                    def task_callback(task_output):
+                        return asyncio.run_coroutine_threadsafe(
+                            self.create_task_callback(task_id, task_name)(task_output), self.loop
+                        ).result()
+
+                    return task_callback
+
                 task_dict[task_id] = Task(
                     description=dedent(task.description + conversation),
                     expected_output=dedent(task.expected_output),
                     agent=agent_dict[task.published_agent_id],
                     context=context_tasks,
-                    callback=lambda task_output: asyncio.run_coroutine_threadsafe(
-                        self.create_task_callback(task.id, task.name)(task_output), self.loop
-                    ).result()
+                    callback=create_task_callback(task.id, task.name)
                 )
         return task_dict
 
