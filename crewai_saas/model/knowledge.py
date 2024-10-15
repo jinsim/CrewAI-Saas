@@ -5,8 +5,8 @@ from crewai_saas.model.base import CreateBase, InDBBase, ResponseBase
 
 
 class KnowledgeCreate(CreateBase):
-    agent_id: Optional[int]
-    published_agent_id: Optional[int]
+    agent_id: Optional[int] = None
+    published_agent_id: Optional[int] = None
     file_path: Optional[str]
 
 class Knowledge(ResponseBase):

@@ -7,10 +7,10 @@ from crewai_saas.api.api_v1.endpoints.profiles import validate, get_profile_by_t
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.core.enum import CrewStatus
 from crewai_saas.core.google_auth_utils import GoogleAuthUtils
-from crewai_saas.crud import crew, employed_crew, api_key, task, profile, published_crew, published_agent, published_task
+from crewai_saas.crud import crew, employed_crew, api_key, task, profile, published_crew, published_agent, published_task, knowledge
 from crewai_saas.service import crewai, crewAiService
 
-from crewai_saas.model import Crew, CrewCreate, CrewUpdate, CrewWithAll, PublishedCrewCreate, PublishedAgentCreate, PublishedTaskCreate
+from crewai_saas.model import Crew, CrewCreate, CrewUpdate, CrewWithAll, PublishedCrewCreate, PublishedAgentCreate, PublishedTaskCreate, KnowledgeCreate
 
 router = APIRouter()
 
@@ -125,18 +125,26 @@ async def delete_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
 
 @router.post("/{crew_id}/publish")
 async def publish_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to get")],
-                      session: SessionDep,
-                      user_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> Response:
+                      session: SessionDep) -> Response:
     get_crew = await crew.get_active(session, id=crew_id)
-    validation_result = await validate(session, get_crew.profile_id, user_email)
-    if isinstance(validation_result, JSONResponse):
-        return validation_result
+    # validation_result = await validate(session, get_crew.profile_id, user_email)
+    # if isinstance(validation_result, JSONResponse):
+    #     return validation_result
     get_agents = await crud.agent.get_all_active_by_crew_id(session, crew_id=crew_id)
     publish_crew_entity = await published_crew.create(session, obj_in=PublishedCrewCreate(**get_crew.dict(), crew_id=crew_id))
 
     agent_dict = {}
     for agent_entity in get_agents:
-        agent_dict[agent_entity.id] = await published_agent.create(session, obj_in=PublishedAgentCreate(**agent_entity.dict(), published_crew_id=publish_crew_entity.id))
+        published_agent_entity = await published_agent.create(session, obj_in=PublishedAgentCreate(**agent_entity.dict(), published_crew_id=publish_crew_entity.id))
+        knowledge_entities = await knowledge.get_all_active_by_agent_id(session, agent_id=agent_entity.id)
+        for knowledge_entity in knowledge_entities:
+            knowledge_in = KnowledgeCreate(
+                published_agent_id=published_agent_entity.id,
+                file_path=knowledge_entity.file_path
+            )
+            await knowledge.create(session, knowledge_in)
+
+        agent_dict[agent_entity.id] = published_agent_entity
 
     task_dict = {}
     for task_id in get_crew.task_ids:

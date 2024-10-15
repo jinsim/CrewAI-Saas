@@ -4,7 +4,7 @@ from crewai_saas.crud.base import CRUDBase, UpdateSchemaType, CRDBase
 from crewai_saas.model import Knowledge, KnowledgeCreate
 
 class CRDKnowledge(CRDBase[Knowledge, KnowledgeCreate]):
-    async def create(self, db: AsyncClient, *, obj_in: KnowledgeCreate) -> Knowledge:
+    async def create(self, db: AsyncClient, obj_in: KnowledgeCreate) -> Knowledge:
         return await super().create(db, obj_in=obj_in)
 
     async def get(self, db: AsyncClient, *, id: int) -> Knowledge | None:
