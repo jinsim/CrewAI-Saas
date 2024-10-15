@@ -235,14 +235,14 @@ async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the
     return JSONResponse(content=response_data)
 
 
-async def get_cycles_data(session: SessionDep, employed_crew_id: int, chat_id: int):
+async def get_new_cycles_data(session: SessionDep, employed_crew_id: int, chat_id: int, last_cycle_id: int):
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
 
     if get_employed_crew.is_owner:
-        cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
+        cycles = await crud.cycle.get_all_by_chat_id_after(session, chat_id=chat_id, last_cycle_id=last_cycle_id)
         is_owner = True
     else:
-        cycles = await crud.cycle.get_all_finished_and_started_by_chat_id(session, chat_id=chat_id)
+        cycles = await crud.cycle.get_all_finished_and_started_by_chat_id_after(session, chat_id=chat_id, last_cycle_id=last_cycle_id)
         is_owner = False
 
     cycle_with_messages = []
@@ -253,18 +253,17 @@ async def get_cycles_data(session: SessionDep, employed_crew_id: int, chat_id: i
 
     return {
         "cycles": cycle_with_messages,
-        "is_owned": is_owner
+        "is_owner": is_owner
     }
 
 
 async def generate_events(session: SessionDep, employed_crew_id: int, chat_id: int, last_cycle_id: int):
     while True:
-        current_data = await get_cycles_data(session, employed_crew_id, chat_id)
-        print(current_data)
-        print(current_data["cycles"][0]["id"])
-        if current_data["cycles"] and current_data["cycles"][0]["id"] > last_cycle_id:
-            yield f"data: {json.dumps(current_data)}\n\n"
-            last_cycle_id = current_data["cycles"][0]["id"]
+        new_data = await get_new_cycles_data(session, employed_crew_id, chat_id, last_cycle_id)
+        print(new_data)
+        if new_data["cycles"]:
+            yield f"data: {json.dumps(new_data)}\n\n"
+            last_cycle_id = new_data["cycles"][0]["id"]
         print(f"last_cycle_id : {last_cycle_id}")
         await asyncio.sleep(1)  # 1초마다 확인
 

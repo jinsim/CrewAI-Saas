@@ -72,6 +72,16 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
         _, got = data
         return [self.model(**item) for item in got]
 
+    async def get_all_by_chat_id_after(self, db: AsyncClient, *, chat_id: int, last_cycle_id: int) -> List[Cycle]:
+        data, count = await db.table(self.model.table_name)\
+            .select("*")\
+            .eq("chat_id", chat_id)\
+            .gt("id", last_cycle_id)\
+            .order("id", desc=True)\
+            .execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
     async def get_all_finished_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
         data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).eq("status", CycleStatus.FINISHED.value).order("id", desc=False).execute()
         _, got = data
@@ -79,6 +89,17 @@ class CRUDCycle(CRUDBase[Cycle, CycleCreate, CycleUpdate]):
 
     async def get_all_finished_and_started_by_chat_id(self, db: AsyncClient, *, chat_id: int) -> list[Cycle]:
         data, count = await db.table(self.model.table_name).select("*").eq("chat_id", chat_id).in_("status", [CycleStatus.FINISHED.value, CycleStatus.STARTED.value]).order("id", desc=True).execute()
+        _, got = data
+        return [self.model(**item) for item in got]
+
+    async def get_all_finished_and_started_by_chat_id_after(self, db: AsyncClient, *, chat_id: int, last_cycle_id: int) -> List[Cycle]:
+        data, count = await db.table(self.model.table_name)\
+            .select("*")\
+            .eq("chat_id", chat_id)\
+            .in_("status", [CycleStatus.FINISHED.value, CycleStatus.STARTED.value]) \
+            .gt("id", last_cycle_id) \
+            .order("id", desc=True)\
+            .execute()
         _, got = data
         return [self.model(**item) for item in got]
 
