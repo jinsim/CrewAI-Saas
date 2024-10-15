@@ -12,7 +12,7 @@ from crewai import Agent, Task, Crew
 from crewai_saas import crud
 from crewai_saas.core.enum import CycleStatus, MessageRole, MessageType
 from crewai_saas.model import MessageCreate
-from crewai_saas.tool import function_map
+from crewai_saas.tool import function_map, get_search_tool, UnsupportedFileTypeError
 
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -200,6 +200,23 @@ class CrewAiStartService:
             if agent.tool_ids:
                 tools_from_db = await crud.tool.get_all_by_ids(self.session, agent.tool_ids)
                 tools = [function_map[tool.key] for tool in tools_from_db]
+
+            if is_owner:
+                rag_knowledges = await crud.knowledge.get_all_active_by_agent_id(self.session, agent_id=agent.id)
+            else:
+                rag_knowledges = await crud.knowledge.get_all_active_by_published_agent_id(self.session,
+                                                                                      published_agent_id=agent.id)
+
+            for rag_knowledge in rag_knowledges:
+                try:
+                    rag_tool = get_search_tool(rag_knowledge.file_path)
+                    print(f"[RAG] 파일: {rag_knowledge}")
+                    print(f"[RAG] 도구: {type(rag_tool).__name__}")
+                    tools.append(rag_tool)
+                except UnsupportedFileTypeError as e:
+                    print(f"오류: {e}")
+
+            logger.info(f"tools = {tools}")
 
             # 클로저를 사용하여 현재의 agent.id와 agent.name을 캡처
             def create_step_callback(agent_id, agent_name):
