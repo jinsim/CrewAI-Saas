@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, UploadFile, File, Response
 from typing import Annotated
+from starlette.responses import JSONResponse
 
 from crewai_saas.api.deps import CurrentUser, SessionDep
 from crewai_saas.core.enum import CrewStatus
-from crewai_saas.crud import agent, tool, task, crew
-from crewai_saas.model import Agent, AgentCreate, AgentUpdate, Tool, AgentWithTool
+from crewai_saas.crud import agent, tool, task, crew, storage, knowledge
+from crewai_saas.model import Agent, AgentCreate, AgentUpdate, Tool, AgentWithTool, KnowledgeCreate
 
 router = APIRouter()
 
@@ -38,3 +39,27 @@ async def update_agent(agent_id: Annotated[int, Path(title="The ID of the it to 
 async def delete_agent(agent_id: Annotated[int, Path(title="The ID of the it to get")],
                        session: SessionDep) -> Agent:
     return await agent.soft_delete(session, id=agent_id)
+
+
+@router.post("/{agent_id}/rag")
+async def create_agent_rag(
+        agent_id: Annotated[int, Path(title="The ID of the it to get")],
+        session: SessionDep, file: UploadFile = File(...)) -> Response:
+    # Read the file content
+    file_content = await file.read()
+
+    # Upload the file to Supabase storage
+    file_url = await storage.upload_file(session, file_content, file.content_type)
+
+    # Here you would typically update your agent with the new file URL
+    knowledge_in = KnowledgeCreate(
+        agent_id=agent_id,
+        file_path=file_url
+    )
+    knowledge_item = await knowledge.create(session, knowledge_in)
+
+    return JSONResponse(
+        status_code=200,
+        content=knowledge_item
+    )
+
