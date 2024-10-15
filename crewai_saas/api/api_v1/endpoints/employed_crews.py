@@ -235,15 +235,11 @@ async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the
     return JSONResponse(content=response_data)
 
 
-async def get_new_cycles_data(session: SessionDep, employed_crew_id: int, chat_id: int, last_cycle_id: int):
-    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-
-    if get_employed_crew.is_owner:
-        cycles = await crud.cycle.get_all_by_chat_id_after(session, chat_id=chat_id, last_cycle_id=last_cycle_id)
-        is_owner = True
+async def get_cycles_data(session: SessionDep, chat_id: int, is_owner: bool):
+    if is_owner:
+        cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
     else:
-        cycles = await crud.cycle.get_all_finished_and_started_by_chat_id_after(session, chat_id=chat_id, last_cycle_id=last_cycle_id)
-        is_owner = False
+        cycles = await crud.cycle.get_all_finished_and_started_by_chat_id(session, chat_id=chat_id)
 
     cycle_with_messages = []
     for cycle in cycles:
@@ -251,20 +247,34 @@ async def get_new_cycles_data(session: SessionDep, employed_crew_id: int, chat_i
         message_dtos = [MessageSimple(**message.dict()) for message in messages]
         cycle_with_messages.append(CycleWithMessage(**cycle.dict(), messages=message_dtos).dict())
 
-    return {
-        "cycles": cycle_with_messages,
-        "is_owner": is_owner
-    }
+    return cycle_with_messages
 
 
-async def generate_events(session: SessionDep, employed_crew_id: int, chat_id: int, last_cycle_id: int):
+def has_changes(current_data: list[dict], previous_data: list[dict]) -> bool:
+    if len(current_data) != len(previous_data):
+        return True
+    for current_cycle, previous_cycle in zip(current_data, previous_data):
+        if len(current_cycle['messages']) != len(previous_cycle['messages']):
+            return True
+    return False
+
+
+async def generate_events(session: SessionDep, employed_crew_id: int, chat_id: int):
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+    is_owner = get_employed_crew.is_owner
+
+    previous_data = None
     while True:
-        new_data = await get_new_cycles_data(session, employed_crew_id, chat_id, last_cycle_id)
-        print(new_data)
-        if new_data["cycles"]:
-            yield f"data: {json.dumps(new_data)}\n\n"
-            last_cycle_id = new_data["cycles"][0]["id"]
-        print(f"last_cycle_id : {last_cycle_id}")
+        current_data = await get_cycles_data(session, chat_id, is_owner)
+
+        if previous_data is None or has_changes(current_data, previous_data):
+            response_data = {
+                "cycles": current_data,
+                "is_owner": is_owner
+            }
+            yield f"data: {json.dumps(response_data)}\n\n"
+            previous_data = current_data
+
         await asyncio.sleep(1)  # 1초마다 확인
 
 
@@ -272,10 +282,9 @@ async def generate_events(session: SessionDep, employed_crew_id: int, chat_id: i
 async def read_cycles_sse(
         employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
         chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-        session: SessionDep,
-        last_cycle_id: int = 0
+        session: SessionDep
 ):
-    return StreamingResponse(generate_events(session, employed_crew_id, chat_id, last_cycle_id),
+    return StreamingResponse(generate_events(session, employed_crew_id, chat_id),
                              media_type="text/event-stream")
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles/{cycle_id}")
