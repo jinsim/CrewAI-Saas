@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Any, List, Optional
+from typing import Generic, TypeVar, Any, List, Optional, BinaryIO
 from supabase_py_async import AsyncClient
 from crewai_saas.model.auth import UserIn
 from crewai_saas.model.base import CreateBase, ResponseBase, UpdateBase, DeleteBase
