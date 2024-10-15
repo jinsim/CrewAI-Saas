@@ -2,6 +2,10 @@ import logging
 import threading
 import inspect
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+import asyncio
+import json
+
 from typing import Annotated
 from fastapi import FastAPI, Path, Query, Request, Response
 from datetime import datetime
@@ -204,12 +208,11 @@ async def delete_chat(chat_id: Annotated[int, Path(title="The ID of the Chat to 
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles")
 async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
                                chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
-                               session: SessionDep,
-                               profile_email: str = Depends(GoogleAuthUtils.get_current_user_email)) -> JSONResponse:
+                               session: SessionDep) -> JSONResponse:
     get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
-    validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
-    if isinstance(validation_result, JSONResponse):
-        return validation_result
+    # validation_result = await validate(session, get_employed_crew.profile_id, profile_email)
+    # if isinstance(validation_result, JSONResponse):
+    #     return validation_result
     if get_employed_crew.is_owner:
         cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
         is_owner = True
@@ -230,6 +233,51 @@ async def read_cycles(employed_crew_id: Annotated[int, Path(title="The ID of the
         "is_owned": is_owner
     }
     return JSONResponse(content=response_data)
+
+
+async def get_cycles_data(session: SessionDep, employed_crew_id: int, chat_id: int):
+    get_employed_crew = await crud.employed_crew.get_active(session, id=employed_crew_id)
+
+    if get_employed_crew.is_owner:
+        cycles = await crud.cycle.get_all_by_chat_id(session, chat_id=chat_id)
+        is_owner = True
+    else:
+        cycles = await crud.cycle.get_all_finished_and_started_by_chat_id(session, chat_id=chat_id)
+        is_owner = False
+
+    cycle_with_messages = []
+    for cycle in cycles:
+        messages = await crud.message.get_all_by_cycle_id(session, cycle_id=cycle.id)
+        message_dtos = [MessageSimple(**message.dict()) for message in messages]
+        cycle_with_messages.append(CycleWithMessage(**cycle.dict(), messages=message_dtos).dict())
+
+    return {
+        "cycles": cycle_with_messages,
+        "is_owned": is_owner
+    }
+
+
+async def generate_events(session: SessionDep, employed_crew_id: int, chat_id: int, last_cycle_id: int):
+    while True:
+        current_data = await get_cycles_data(session, employed_crew_id, chat_id)
+        print(current_data)
+        print(current_data["cycles"][0]["id"])
+        if current_data["cycles"] and current_data["cycles"][0]["id"] > last_cycle_id:
+            yield f"data: {json.dumps(current_data)}\n\n"
+            last_cycle_id = current_data["cycles"][0]["id"]
+        print(f"last_cycle_id : {last_cycle_id}")
+        await asyncio.sleep(1)  # 1초마다 확인
+
+
+@router.get("/{employed_crew_id}/chats/{chat_id}/cycles/sse")
+async def read_cycles_sse(
+        employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
+        chat_id: Annotated[int, Path(title="The ID of the Chat to get")],
+        session: SessionDep,
+        last_cycle_id: int = 0
+):
+    return StreamingResponse(generate_events(session, employed_crew_id, chat_id, last_cycle_id),
+                             media_type="text/event-stream")
 
 @router.get("/{employed_crew_id}/chats/{chat_id}/cycles/{cycle_id}")
 async def read_cycle_by_id(employed_crew_id: Annotated[int, Path(title="The ID of the Employed Crew to get")],
