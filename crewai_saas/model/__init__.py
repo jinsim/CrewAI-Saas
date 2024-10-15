@@ -14,3 +14,5 @@ from .crew import Crew, CrewCreate, CrewUpdate, CrewInDB, Task, TaskCreate, Task
 
 from .published_crew import PublishedCrew, PublishedCrewCreate, PublishedCrewInDB, \
     PublishedCrewWithAll, PublishedTask, PublishedTaskCreate, PublishedTaskInDB, PublishedAgent, PublishedAgentCreate, PublishedAgentInDB, PublishedAgentWithTool
+
+from .knowledge import KnowledgeCreate, Knowledge, KnowledgeInDB
