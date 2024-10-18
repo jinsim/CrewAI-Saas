@@ -88,7 +88,7 @@ async def verify_crew(crew_id: Annotated[int, Path(title="The ID of the Crew to 
             content={"message": "Crew has no description"},
         )
 
-    if get_crew.llm_id is None:
+    if get_crew.llm_id is None and not get_crew.is_sequential:
         return JSONResponse(
             status_code=404,
             content={"message": "Crew has no LLM ID"},
