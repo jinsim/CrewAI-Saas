@@ -112,6 +112,7 @@ class MessageInDB(InDBBase):
 class MessageSimple(InDBBase):
     content: str
     role: MessageRole
+    type: Optional[MessageType]
     class Config:
         use_enum_values = True
         arbitrary_types_allowed = True
