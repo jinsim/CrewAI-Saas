@@ -1,5 +1,5 @@
 from typing import Generic, TypeVar, Any, List, Optional, BinaryIO
-from supabase_py_async import AsyncClient
+from supabase._async.client import AsyncClient
 from crewai_saas.model.auth import UserIn
 from crewai_saas.model.base import CreateBase, ResponseBase, UpdateBase, DeleteBase
 
@@ -78,6 +78,7 @@ class CRDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType]):
 
 class CRUDBase(ReadBase[ModelType], Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def create(self, db: AsyncClient, *, obj_in: CreateSchemaType) -> ModelType:
+        print(f"db : {db}")
         data, _ = await db.table(self.model.table_name).insert(obj_in.model_dump()).execute()
         _, created = data
         return self.model(**created[0])

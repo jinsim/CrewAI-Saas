@@ -4,10 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from gotrue.errors import AuthApiError
-from supabase_py_async import AsyncClient, create_client
-from supabase_py_async.lib.client_options import ClientOptions
-
+from supabase._async.client import AsyncClient, create_client, ClientOptions
 from crewai_saas.core.config import settings
 from crewai_saas.model.auth import UserIn
 
@@ -17,7 +14,11 @@ super_client: AsyncClient | None = None
 async def init_super_client() -> None:
     """for validation access_token init at life span event"""
     global super_client
-    super_client = await create_client(
+
+    logging.info("Initializing super client")
+    logging.info(f"supabase url: {settings.SUPABASE_URL}")
+
+    super_client = create_client(
         settings.SUPABASE_URL,
         settings.SUPABASE_KEY,
         options=ClientOptions(postgrest_client_timeout=10, storage_client_timeout=10),
@@ -34,7 +35,7 @@ async def get_current_user(access_token: AccessTokenDep) -> UserIn:
     if not super_client:
         raise HTTPException(status_code=500, detail="Super client not initialized")
 
-    user_rsp = await super_client.auth.get_user(jwt=access_token)
+    user_rsp = super_client.auth.get_user(jwt=access_token)
     if not user_rsp:
         logging.error("User not found")
         raise HTTPException(status_code=404, detail="User not found")
@@ -42,29 +43,6 @@ async def get_current_user(access_token: AccessTokenDep) -> UserIn:
 
 
 CurrentUser = Annotated[UserIn, Depends(get_current_user)]
-
-
-async def get_db_auth(user: CurrentUser) -> AsyncClient:
-    client: AsyncClient | None = None
-    try:
-        client = await create_client(
-            settings.SUPABASE_URL,
-            settings.SUPABASE_KEY,
-            access_token=user.access_token,
-            options=ClientOptions(
-                postgrest_client_timeout=10, storage_client_timeout=10
-            ),
-        )
-        yield client
-
-    except AuthApiError as e:
-        logging.error(e)
-        raise HTTPException(
-            status_code=401, detail="Invalid authentication credentials"
-        )
-    finally:
-        if client:
-            await client.auth.sign_out()
 
 async def get_db() -> AsyncClient:
     client: AsyncClient | None = None

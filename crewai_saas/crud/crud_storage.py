@@ -1,5 +1,5 @@
 from typing import Optional, BinaryIO
-from supabase_py_async import AsyncClient
+from supabase._async.client import AsyncClient
 
 import uuid
 import logging

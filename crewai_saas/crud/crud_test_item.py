@@ -1,4 +1,4 @@
-from supabase_py_async import AsyncClient
+from supabase._async.client import AsyncClient
 
 from crewai_saas.crud.base import CRUDBase
 from crewai_saas.model import TestItem, TestItemCreate, TestItemUpdate

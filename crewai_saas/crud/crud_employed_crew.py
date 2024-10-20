@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from supabase_py_async import AsyncClient
+from supabase._async.client import AsyncClient
 
 from crewai_saas.crud.base import CRUDBase, ReadBase
 from crewai_saas.model import EmployedCrew, EmployedCrewCreate, EmployedCrewUpdate, Chat, ChatCreate, ChatUpdate, MessageCreate, Message, MessageUpdate, CycleCreate, Cycle, CycleUpdate

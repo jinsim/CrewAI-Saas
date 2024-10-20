@@ -1,4 +1,4 @@
-from supabase_py_async import AsyncClient
+from supabase._async.client import AsyncClient
 
 from typing import List
 from crewai_saas.core.enum import CrewStatus
