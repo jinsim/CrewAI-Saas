@@ -23,6 +23,7 @@ langchain-core = "0.2.15"
 langchain = "0.2.6"
 langchain-community = "0.2.6"
 cryptography = "^43.0.0"
+newrelic = "^10.2.0"
 
 [build-system]
 requires = ["poetry-core"]

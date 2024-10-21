@@ -16,9 +16,8 @@ async def init_super_client() -> None:
     global super_client
 
     logging.info("Initializing super client")
-    logging.info(f"supabase url: {settings.SUPABASE_URL}")
 
-    super_client = create_client(
+    super_client = await create_client(
         settings.SUPABASE_URL,
         settings.SUPABASE_KEY,
         options=ClientOptions(postgrest_client_timeout=10, storage_client_timeout=10),
